@@ -45,7 +45,6 @@ namespace ACE.Server.Command.Handlers
                 }
             }
             //Check to see if a ridiculous amt is provided.  Could fix by finding the expanded form of the calculation
-            //If someone wanted to be malicious they could spam the command and make your server run a huge loop.
             if (amt > DuskfallSettings.RAISE_MAX)
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat($"Provide an amount lower than {DuskfallSettings.RAISE_MAX}: /raise <{String.Join("|", Enum.GetNames(typeof(RaiseTarget)))}> [amount]", ChatMessageType.Broadcast));
@@ -104,7 +103,6 @@ namespace ACE.Server.Command.Handlers
             //If successful in spending luminance level the target
             switch (target)
             {
-
                 case RaiseTarget.World:
                 case RaiseTarget.Enlighten:
                     ChatPacket.SendServerMessage(session, $"You have raised your World Aug to {player.LumAugAllSkills}! Skills increased by {amt} for {lumCost:N0} Luminance.", ChatMessageType.Broadcast);
