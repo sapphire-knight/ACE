@@ -162,7 +162,7 @@ namespace ACE.Server.WorldObjects.Managers
                 case EmoteType.AwardTrainingCredits:
 
                     if (player != null)
-                        player.AddSkillCredits(emote.Amount ?? 0);
+                        player.AddSkillCredits(emote.Amount ?? 0, false);
                     break;
 
                 case EmoteType.AwardXP:
@@ -375,7 +375,7 @@ namespace ACE.Server.WorldObjects.Managers
                     var stackSize = emote.StackSize ?? 1;
 
                     if (player != null && emote.WeenieClassId != null)
-                        player.GiveFromEmote(WorldObject, emote.WeenieClassId ?? 0, stackSize > 0 ? stackSize : 1, emote.Palette ?? 0, emote.Shade ?? 0);
+                        player.GiveFromEmote(WorldObject, emote.WeenieClassId ?? 0, stackSize > 0 ? stackSize : 1);
 
                     break;
 
@@ -469,18 +469,7 @@ namespace ACE.Server.WorldObjects.Managers
                 case EmoteType.InqFellowNum:
 
                     // unused in PY16 - ensure # of fellows between min-max?
-                    var result = EmoteCategory.TestNoFellow;
-
-                    if (player?.Fellowship != null)
-                    {
-                        var fellows = player.Fellowship.GetFellowshipMembers();
-
-                        if (fellows.Count < (emote.Min ?? int.MinValue) || fellows.Count > (emote.Max ?? int.MaxValue))
-                            result = EmoteCategory.NumFellowsFailure;
-                        else
-                            result = EmoteCategory.NumFellowsSuccess;
-                    }
-                    ExecuteEmoteSet(result, emote.Message, targetObject, true);
+                    ExecuteEmoteSet(player != null && player.Fellowship != null ? EmoteCategory.TestSuccess : EmoteCategory.TestNoFellow, emote.Message, targetObject, true);
                     break;
 
                 case EmoteType.InqFellowQuest:
@@ -817,10 +806,7 @@ namespace ACE.Server.WorldObjects.Managers
 
                     if (player != null)
                     {
-                        if (!player.ConfirmationManager.EnqueueSend(new Confirmation_YesNo(WorldObject.Guid, player.Guid, emote.Message), emote.TestString))
-                        {
-                            ExecuteEmoteSet(EmoteCategory.TestFailure, emote.Message, player);
-                        }
+                        player.ConfirmationManager.EnqueueSend(new Confirmation_YesNo(WorldObject.Guid, player.Guid, emote.Message), emote.TestString);
                     }
                     break;
 

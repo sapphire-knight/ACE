@@ -2,9 +2,7 @@ using System;
 
 using ACE.Entity;
 using ACE.Entity.Enum;
-using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
-using ACE.Server.Managers;
 using ACE.Server.Network.GameEvent.Events;
 
 namespace ACE.Server.WorldObjects
@@ -83,13 +81,13 @@ namespace ACE.Server.WorldObjects
 
             if (IsTrading)
             {
-                if (sourceItem.IsBeingTradedOrContainsItemBeingTraded(ItemsInTradeWindow))
+                if (ItemsInTradeWindow.Contains(sourceItem.Guid))
                 {
                     SendUseDoneEvent(WeenieError.TradeItemBeingTraded);
                     //SendWeenieError(WeenieError.TradeItemBeingTraded);
                     return;
                 }
-                if (target.IsBeingTradedOrContainsItemBeingTraded(ItemsInTradeWindow))
+                if (ItemsInTradeWindow.Contains(target.Guid))
                 {
                     SendUseDoneEvent(WeenieError.TradeItemBeingTraded);
                     //SendWeenieError(WeenieError.TradeItemBeingTraded);
@@ -147,7 +145,7 @@ namespace ACE.Server.WorldObjects
 
             var item = FindObject(itemGuid, SearchLocations.MyInventory | SearchLocations.MyEquippedItems | SearchLocations.Landblock);
 
-            if (IsTrading && item.IsBeingTradedOrContainsItemBeingTraded(ItemsInTradeWindow))
+            if (IsTrading && ItemsInTradeWindow.Contains(item.Guid))
             {
                 SendUseDoneEvent(WeenieError.TradeItemBeingTraded);
                 //SendWeenieError(WeenieError.TradeItemBeingTraded);
@@ -190,10 +188,6 @@ namespace ACE.Server.WorldObjects
             if (success)
                 item.OnActivate(this);
 
-            // manually managed
-            if (LastUseTime == float.MinValue)
-                return;
-
             var actionChain = new ActionChain();
             actionChain.AddDelaySeconds(LastUseTime);
             actionChain.AddAction(this, () => SendUseDoneEvent());
@@ -235,11 +229,6 @@ namespace ACE.Server.WorldObjects
 
         public void ApplyConsumable(MotionCommand useMotion, Action action, float animMod = 1.0f)
         {
-            if (PropertyManager.GetBool("allow_fast_chug").Item && FastTick)
-            {
-                ApplyConsumableWithAnimationCallbacks(useMotion, action, animMod);
-                return;
-            }
             IsBusy = true;
 
             var actionChain = new ActionChain();
@@ -276,91 +265,6 @@ namespace ACE.Server.WorldObjects
             actionChain.EnqueueChain();
 
             LastUseTime = animTime;
-        }
-
-        /// <summary>
-        /// Fast chugging state variable
-        /// </summary>
-        public FoodState FoodState { get; set; }
-
-        public void ApplyConsumableWithAnimationCallbacks(MotionCommand useMotion, Action action, float animMod = 1.0f)
-        {
-            IsBusy = true;
-
-            var actionChain = new ActionChain();
-
-            // if combat mode, temporarily drop to non-combat
-            var prevStance = CurrentMotionState.Stance;
-
-            var animTime = 0.0f;
-
-            if (prevStance != MotionStance.NonCombat)
-                animTime = EnqueueMotion_Force(actionChain, MotionStance.NonCombat, MotionCommand.Ready, (MotionCommand)prevStance);
-
-            // start the eat/drink motion
-            var useAnimTime = EnqueueMotion_Force(actionChain, MotionStance.NonCombat, useMotion, null, 1.0f, animMod);
-
-            animTime += useAnimTime;
-
-            // the rest is based on animation callback now
-            FoodState.StartChugging(useMotion, action, animMod, useAnimTime, prevStance);
-
-            actionChain.EnqueueChain();
-
-            // manually managed
-            LastUseTime = float.MinValue;
-        }
-
-        public void HandleMotionDone_UseConsumable(uint motionID, bool success)
-        {
-            //Console.WriteLine($"HandleMotionDone_UseConsumable({(MotionCommand)motionID}, {success})");
-
-            if (!FastTick || !FoodState.IsChugging) return;
-
-            if (motionID != (uint)FoodState.UseMotion)
-                return;
-
-            // restore state vars
-            var animMod = FoodState.AnimMod;
-            var animTime = 0.0f;
-            var actionChain = new ActionChain();
-            var useMotion = FoodState.UseMotion;
-            var useAnimTime = FoodState.UseAnimTime;
-            var prevStance = FoodState.PrevStance;
-
-            if (motionID != (uint)MotionCommand.Ready)
-            {
-                if (FoodState.Callback != null)
-                {
-                    FoodState.Callback();
-                    FoodState.Callback = null;
-                }
-
-                FoodState.UseMotion = MotionCommand.Ready;
-
-                if (animMod == 1.0f)
-                {
-                    // return to ready stance
-                    animTime += EnqueueMotion_Force(actionChain, MotionStance.NonCombat, MotionCommand.Ready, useMotion);
-                }
-                else
-                    actionChain.AddDelaySeconds(useAnimTime * (1.0f - animMod));
-            }
-            else
-            {
-                FoodState.FinishChugging();
-
-                if (prevStance != MotionStance.NonCombat)
-                    animTime += EnqueueMotion_Force(actionChain, prevStance, MotionCommand.Ready, MotionCommand.NonCombat);
-
-                actionChain.AddAction(this, () =>
-                {
-                    SendUseDoneEvent();
-                    IsBusy = false;
-                });
-            }
-
-            actionChain.EnqueueChain();
         }
     }
 }

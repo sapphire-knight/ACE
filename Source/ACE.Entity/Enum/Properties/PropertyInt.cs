@@ -179,7 +179,6 @@ namespace ACE.Entity.Enum.Properties
         VendorHappyVariance                      = 127,
         CloakStatus                              = 128,
         [SendOnLogin]
-        VitaeCpPool                              = 129,
         NumServicesSold                          = 130,
         MaterialType                             = 131,
         [SendOnLogin]
@@ -629,6 +628,20 @@ namespace ACE.Entity.Enum.Properties
         /// </summary>
         [ServerOnly]
         InventoryOrder                          = 9015,
+        [ServerOnly]
+        RaisedStr = 9016,
+        [ServerOnly]
+        RaisedEnd = 9017,
+        [ServerOnly]
+        RaisedCoord = 9018,
+        [ServerOnly]
+        RaisedQuick = 9019,
+        [ServerOnly]
+        RaisedFocus = 9020,
+        [ServerOnly]
+        RaisedSelf = 9021,
+        [ServerOnly]
+        LastLevel = 9035,
     }
 
     public static class PropertyIntExtensions
@@ -767,25 +780,6 @@ namespace ACE.Entity.Enum.Properties
 
                 case PropertyInt.UseCreatesContractId:
                     return System.Enum.GetName(typeof(ContractId), value);
-
-                case PropertyInt.Faction1Bits:
-                case PropertyInt.Faction2Bits:
-                case PropertyInt.Faction3Bits:
-                case PropertyInt.Hatred1Bits:
-                case PropertyInt.Hatred2Bits:
-                case PropertyInt.Hatred3Bits:
-                    return System.Enum.GetName(typeof(FactionBits), value);
-
-                case PropertyInt.UseRequiresSkill:
-                case PropertyInt.UseRequiresSkillSpec:
-                case PropertyInt.SkillToBeAltered:
-                    return System.Enum.GetName(typeof(Skill), value);
-
-                case PropertyInt.HookGroup:
-                    return System.Enum.GetName(typeof(HookGroupType), value);
-
-                //case PropertyInt.TypeOfAlteration:
-                //    return System.Enum.GetName(typeof(SkillAlterationType), value);
             }
 
             return null;

@@ -124,11 +124,13 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public void InflictVitaePenalty(int amount = 5)
         {
+
             DeathLevel = Level; // for calculating vitae XP
+
             VitaeCpPool = 0;    // reset vitae XP earned
 
             var msgDeathLevel = new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.DeathLevel, DeathLevel ?? 0);
-            var msgVitaeCpPool = new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.VitaeCpPool, VitaeCpPool.Value);
+            var msgVitaeCpPool = new GameMessagePrivateUpdatePropertyInt64(this, PropertyInt64.VitaeCpPool, VitaeCpPool.Value);
 
             Session.Network.EnqueueSend(msgDeathLevel, msgVitaeCpPool);
 
@@ -141,7 +143,7 @@ namespace ACE.Server.WorldObjects
         }
 
 
-        public bool IsInDeathProcess;
+        private bool isInDeathProcess;
 
         /// <summary>
         /// Broadcasts the player death animation, updates vitae, and sends network messages for player death
@@ -149,7 +151,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         protected override void Die(DamageHistoryInfo lastDamager, DamageHistoryInfo topDamager)
         {
-            IsInDeathProcess = true;
+            isInDeathProcess = true;
 
             if (topDamager?.Guid == Guid && IsPKType)
             {
@@ -214,7 +216,8 @@ namespace ACE.Server.WorldObjects
             var animLength = DatManager.PortalDat.ReadFromDat<MotionTable>(MotionTableId).GetAnimationLength(MotionCommand.Dead);
             dieChain.AddDelaySeconds(animLength + 1.0f);
 
-            dieChain.AddAction(this, () =>
+            // Ensure this is done in a thread-safe manner, by WorldManager
+            dieChain.AddAction(WorldManager.ActionQueue, () =>
             {
                 CreateCorpse(topDamager);
 
@@ -269,7 +272,7 @@ namespace ACE.Server.WorldObjects
 
                     OnHealthUpdate();
 
-                    IsInDeathProcess = false;
+                    isInDeathProcess = false;
 
                     if (IsLoggingOut)
                         LogOut_Final(true);

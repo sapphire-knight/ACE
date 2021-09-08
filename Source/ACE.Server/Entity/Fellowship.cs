@@ -23,7 +23,7 @@ namespace ACE.Server.Entity
         /// <summary>
         /// The maximum # of fellowship members
         /// </summary>
-        public static int MaxFellows = 9;
+        public static int MaxFellows = 15;
 
         public string FellowshipName;
         public uint FellowshipLeaderGuid;
@@ -107,7 +107,9 @@ namespace ACE.Server.Entity
 
             if (newMember.Fellowship != null || FellowshipMembers.ContainsKey(newMember.Guid.Full))
             {
-                inviter.Session.Network.EnqueueSend(new GameMessageSystemChat($"{newMember.Name} is already a member of a Fellowship.", ChatMessageType.Broadcast));
+                // todo: can't seem to find pcap of this scenario... seems odd..
+                inviter.Session.Network.EnqueueSend(new GameMessageSystemChat($"{newMember.Name} is already in a fellowship", ChatMessageType.Fellowship));
+                //inviter.Session.Network.EnqueueSend(new GameEventWeenieError(inviter.Session, WeenieError.FellowshipMember)); 
             }
             else
             {
@@ -122,12 +124,7 @@ namespace ACE.Server.Entity
                     AddConfirmedMember(inviter, newMember, true);
                 }
                 else
-                {
-                    if (!newMember.ConfirmationManager.EnqueueSend(new Confirmation_Fellowship(inviter.Guid, newMember.Guid), inviter.Name))
-                    {
-                        inviter.Session.Network.EnqueueSend(new GameMessageSystemChat($"{newMember.Name} is busy.", ChatMessageType.Broadcast));
-                    }
-                }
+                    newMember.ConfirmationManager.EnqueueSend(new Confirmation_Fellowship(inviter.Guid, newMember.Guid), inviter.Name);
             }
         }
 
@@ -177,9 +174,6 @@ namespace ACE.Server.Entity
             }
 
             UpdateAllMembers();
-
-            if (inviter.CurrentMotionState.Stance == MotionStance.NonCombat) // only do this motion if inviter is at peace, other times motion is skipped. 
-                inviter.SendMotionAsCommands(MotionCommand.BowDeep, MotionStance.NonCombat);
         }
 
         public void RemoveFellowshipMember(Player player, Player leader)

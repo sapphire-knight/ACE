@@ -587,7 +587,7 @@ namespace ACE.Server.WorldObjects
 
                     // does target have shield equipped?
                     var shield = target.GetEquippedShield();
-                    if (shield != null && shield.GetAbsorbMagicDamage() != null)
+                    if (shield != null && shield.AbsorbMagicDamage != null)
                         return GetShieldMod(target, shield);
 
                     break;
@@ -595,7 +595,7 @@ namespace ACE.Server.WorldObjects
                 case CombatMode.Missile:
 
                     var missileLauncherOrShield = target.GetEquippedMissileLauncher() ?? target.GetEquippedShield();
-                    if (missileLauncherOrShield != null && missileLauncherOrShield.GetAbsorbMagicDamage() != null)
+                    if (missileLauncherOrShield != null && missileLauncherOrShield.AbsorbMagicDamage != null)
                         return AbsorbMagic(target, missileLauncherOrShield);
 
                     break;
@@ -603,7 +603,7 @@ namespace ACE.Server.WorldObjects
                 case CombatMode.Magic:
 
                     var caster = target.GetEquippedWand();
-                    if (caster != null && caster.GetAbsorbMagicDamage() != null)
+                    if (caster != null && caster.AbsorbMagicDamage != null)
                         return AbsorbMagic(target, caster);
 
                     break;
@@ -637,7 +637,7 @@ namespace ACE.Server.WorldObjects
 
             var baseSkill = Math.Min(shieldSkill.Base, 433);
             var specMod = shieldSkill.AdvancementClass == SkillAdvancementClass.Specialized ? 1.0f : 0.8f;
-            var cap = (float)(shield.GetAbsorbMagicDamage() ?? 0.0f);
+            var cap = (float)(shield.GetProperty(PropertyFloat.AbsorbMagicDamage) ?? 0.0f);
 
             // speced, 100 skill = 0%
             // trained, 100 skill = 0%
@@ -675,12 +675,10 @@ namespace ACE.Server.WorldObjects
             // using an equivalent formula that produces the correct results for 10% and 25%,
             // and also produces the correct results for any %
 
-            var absorbMagicDamage = GetAbsorbMagicDamage();
-
-            if (absorbMagicDamage == null)
+            if (item.AbsorbMagicDamage == null)
                 return 1.0f;
 
-            var maxPercent = absorbMagicDamage.Value;
+            var maxPercent = item.AbsorbMagicDamage.Value;
 
             var baseCap = 319;
             var magicDefBase = target.GetCreatureSkill(Skill.MagicDefense).Base;

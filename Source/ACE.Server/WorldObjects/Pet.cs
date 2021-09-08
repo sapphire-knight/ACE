@@ -81,9 +81,6 @@ namespace ACE.Server.WorldObjects
             PetOwner = player.Guid.Full;
             P_PetOwner = player;
 
-            // All pets don't leave corpses, this maybe should have been in data, but isn't so lets make sure its true.
-            NoCorpse = true;
-
             var success = EnterWorld();
 
             if (!success)

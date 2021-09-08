@@ -111,7 +111,7 @@ namespace ACE.Server.Command.Handlers
         /// <summary>
         /// Attempts to remove the hourglass / fix the busy state for the player
         /// </summary>
-        [CommandHandler("fixbusy", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0, "Attempts to remove the hourglass / fix the busy state for the player")]
+        [CommandHandler("fixbusy", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0, "Attempts to remove the hourglass / fix the busy state for the player", "/fixbusy")]
         public static void HandleFixBusy(Session session, params string[] parameters)
         {
             session.Player.SendUseDoneEvent();
@@ -697,7 +697,7 @@ namespace ACE.Server.Command.Handlers
         /// <summary>
         /// Debug command to print out all of the saved character positions.
         /// </summary>
-        [CommandHandler("listpositions", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Displays all available saved character positions from the database.")]
+        [CommandHandler("listpositions", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Displays all available saved character positions from the database.", "@listpositions")]
         public static void HandleListPositions(Session session, params string[] parameters)
         {
             var posDict = session.Player.GetAllPositions();
@@ -1434,7 +1434,7 @@ namespace ACE.Server.Command.Handlers
             creature.TurnTo(session.Player, true);
         }
 
-        [CommandHandler("debugmove", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Toggles movement debugging for the last appraised monster", "<on/off>")]
+        [CommandHandler("debugmove", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Toggles movement debugging for the last appraised monster", "debugmove <on/off>")]
         public static void ToggleMovementDebug(Session session, params string[] parameters)
         {
             // get the last appraised object
@@ -1472,63 +1472,45 @@ namespace ACE.Server.Command.Handlers
             Console.WriteLine("Visible: " + visible);
         }
 
-        [CommandHandler("showstats", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Shows a list of a creature's current attribute/skill levels", "showstats")]
+        [CommandHandler("showstats", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Shows a list of player's current attribute/skill levels in console window", "showstats")]
         public static void HandleShowStats(Session session, params string[] parameters)
         {
-            // get the last appraised object
-            var item = CommandHandlerHelper.GetLastAppraisedObject(session) as Creature;
-            if (item == null)
-            {
-                session.Player.SendMessage("ERROR: You must appraise a creature or player to use this function.");
-                return;
-            }
+            var player = session.Player;
 
-            Creature creature = (Creature)item;
-            string output = "Strength: " + creature.Strength.Current;
-            output += "\nEndurance: " + creature.Endurance.Current;
-            output += "\nCoordination: " + creature.Coordination.Current;
-            output += "\nQuickness: " + creature.Quickness.Current;
-            output += "\nFocus: " + creature.Focus.Current;
-            output += "\nSelf: " + creature.Self.Current;
+            Console.WriteLine("Strength: " + player.Strength.Current);
+            Console.WriteLine("Endurance: " + player.Endurance.Current);
+            Console.WriteLine("Coordination: " + player.Coordination.Current);
+            Console.WriteLine("Quickness: " + player.Quickness.Current);
+            Console.WriteLine("Focus: " + player.Focus.Current);
+            Console.WriteLine("Self: " + player.Self.Current);
 
-            output += "\n\nHealth: " + creature.Health.Current + "/" + creature.Health.MaxValue;
-            output += "\nStamina: " + creature.Stamina.Current + "/" + creature.Stamina.MaxValue;
-            output += "\nMana: " + creature.Mana.Current + "/" + creature.Mana.MaxValue;
+            Console.WriteLine();
 
-            var specialized = creature.Skills.Values.Where(s => s.AdvancementClass == SkillAdvancementClass.Specialized).OrderBy(s => s.Skill.ToString());
-            var trained = creature.Skills.Values.Where(s => s.AdvancementClass == SkillAdvancementClass.Trained).OrderBy(s => s.Skill.ToString());
-            var untrained = creature.Skills.Values.Where(s => s.AdvancementClass == SkillAdvancementClass.Untrained && s.IsUsable).OrderBy(s => s.Skill.ToString());
-            var unusable = creature.Skills.Values.Where(s => s.AdvancementClass == SkillAdvancementClass.Untrained && !s.IsUsable).OrderBy(s => s.Skill.ToString());
+            Console.WriteLine("Health: " + player.Health.Current + "/" + player.Health.MaxValue);
+            Console.WriteLine("Stamina: " + player.Stamina.Current + "/" + player.Stamina.MaxValue);
+            Console.WriteLine("Mana: " + player.Mana.Current + "/" + player.Mana.MaxValue);
 
-            if (specialized.Count() > 0)
-            {
-                output += "\n\n== Specialized ==";
-                foreach (var skill in specialized)
-                    output += "\n" + skill.Skill + ": " + skill.Current;
-            }
+            Console.WriteLine();
 
-            if (trained.Count() > 0)
-            {
-                output += "\n\n== Trained ==";
-                foreach (var skill in trained)
-                    output += "\n" + skill.Skill + ": " + skill.Current;
-            }
+            var specialized = player.Skills.Values.Where(s => s.AdvancementClass == SkillAdvancementClass.Specialized).OrderBy(s => s.Skill.ToString());
+            var trained = player.Skills.Values.Where(s => s.AdvancementClass == SkillAdvancementClass.Trained).OrderBy(s => s.Skill.ToString());
+            var untrained = player.Skills.Values.Where(s => s.AdvancementClass == SkillAdvancementClass.Untrained && s.IsUsable).OrderBy(s => s.Skill.ToString());
+            var unusable = player.Skills.Values.Where(s => s.AdvancementClass == SkillAdvancementClass.Untrained && !s.IsUsable).OrderBy(s => s.Skill.ToString());
 
-            if (untrained.Count() > 0)
-            {
-                output += "\n\n== Untrained ==";
-                foreach (var skill in untrained)
-                    output += "\n" + skill.Skill + ": " + skill.Current;
-            }
+            foreach (var skill in specialized)
+                Console.WriteLine(skill.Skill + ": " + skill.Current);
+            Console.WriteLine("===");
 
-            if (unusable.Count() > 0)
-            {
-                output += "\n\n== Unusable ==";
-                foreach (var skill in unusable)
-                    output += "\n" + skill.Skill + ": " + skill.Current;
-            }
+            foreach (var skill in trained)
+                Console.WriteLine(skill.Skill + ": " + skill.Current);
+            Console.WriteLine("===");
 
-            session.Player.SendMessage(output);
+            foreach (var skill in untrained)
+                Console.WriteLine(skill.Skill + ": " + skill.Current);
+            Console.WriteLine("===");
+
+            foreach (var skill in unusable)
+                Console.WriteLine(skill.Skill + ": " + skill.Current);
         }
 
         [CommandHandler("givemana", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Gives mana to the last appraised object", "<amount>")]
@@ -1571,7 +1553,7 @@ namespace ACE.Server.Command.Handlers
         /// <summary>
         /// Teleport object culling precision test
         /// </summary>
-        [CommandHandler("teledist", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Teleports a some distance ahead of the last object spawned", "<distance>")]
+        [CommandHandler("teledist", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Teleports a some distance ahead of the last object spawned", "/teletest <distance>")]
         public static void HandleTeleportDist(Session session, params string[] parameters)
         {
             if (parameters.Length < 1)
@@ -1748,7 +1730,7 @@ namespace ACE.Server.Command.Handlers
         /// <summary>
         /// Enables emote debugging for the last appraised object
         /// </summary>
-        [CommandHandler("debugemote", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Enables emote debugging for the last appraised object")]
+        [CommandHandler("debugemote", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Enables emote debugging for the last appraised object", "/debugemote")]
         public static void HandleDebugEmote(Session session, params string[] parameters)
         {
             var obj = CommandHandlerHelper.GetLastAppraisedObject(session);
@@ -1762,7 +1744,7 @@ namespace ACE.Server.Command.Handlers
         /// <summary>
         /// Shows the current player location, from the server perspective
         /// </summary>
-        [CommandHandler("myloc", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Shows the current player location, from the server perspective")]
+        [CommandHandler("myloc", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Shows the current player location, from the server perspective", "/myloc")]
         public static void HandleMyLoc(Session session, params string[] parameters)
         {
             session.Network.EnqueueSend(new GameMessageSystemChat($"CurrentLandblock: {session.Player.CurrentLandblock.Id.Landblock:X4}", ChatMessageType.Broadcast));
@@ -1773,7 +1755,7 @@ namespace ACE.Server.Command.Handlers
         /// <summary>
         /// Gets a property for the last appraised object
         /// </summary>
-        [CommandHandler("getproperty", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Gets a property for the last appraised object", "<property>")]
+        [CommandHandler("getproperty", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Gets a property for the last appraised object", "/getproperty <property>")]
         public static void HandleGetProperty(Session session, params string[] parameters)
         {
             var obj = CommandHandlerHelper.GetLastAppraisedObject(session);
@@ -1844,7 +1826,7 @@ namespace ACE.Server.Command.Handlers
         /// <summary>
         /// Sets a property for the last appraised object
         /// </summary>
-        [CommandHandler("setproperty", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 2, "Sets a property for the last appraised object", "<property> <value>")]
+        [CommandHandler("setproperty", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 2, "Sets a property for the last appraised object", "/setproperty <property> <value>")]
         public static void HandleSetProperty(Session session, params string[] parameters)
         {
             var obj = CommandHandlerHelper.GetLastAppraisedObject(session);
@@ -1916,43 +1898,38 @@ namespace ACE.Server.Command.Handlers
                 {
                     if (propType.Equals("PropertyInt", StringComparison.OrdinalIgnoreCase))
                     {
-                        var intValue = Convert.ToInt32(value, value.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? 16 : 10);
-
-                        session.Player.UpdateProperty(obj, (PropertyInt)result, intValue, true);
+                        obj.SetProperty((PropertyInt)result, Convert.ToInt32(value));
+                        obj.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(obj, (PropertyInt)result, Convert.ToInt32(value)));
                     }
                     else if (propType.Equals("PropertyInt64", StringComparison.OrdinalIgnoreCase))
                     {
-                        var int64Value = Convert.ToInt64(value, value.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? 16 : 10);
-
-                        session.Player.UpdateProperty(obj, (PropertyInt64)result, int64Value, true);
+                        obj.SetProperty((PropertyInt64)result, Convert.ToInt64(value));
+                        obj.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt64(obj, (PropertyInt64)result, Convert.ToInt64(value)));
                     }
                     else if (propType.Equals("PropertyBool", StringComparison.OrdinalIgnoreCase))
                     {
-                        var boolValue = Convert.ToBoolean(value);
-
-                        session.Player.UpdateProperty(obj, (PropertyBool)result, boolValue, true);
+                        obj.SetProperty((PropertyBool)result, Convert.ToBoolean(value));
+                        obj.EnqueueBroadcast(new GameMessagePublicUpdatePropertyBool(obj, (PropertyBool)result, Convert.ToBoolean(value)));
                     }
                     else if (propType.Equals("PropertyFloat", StringComparison.OrdinalIgnoreCase))
                     {
-                        var floatValue = Convert.ToDouble(value);
-
-                        session.Player.UpdateProperty(obj, (PropertyFloat)result, floatValue, true);
+                        obj.SetProperty((PropertyFloat)result, Convert.ToDouble(value));
+                        obj.EnqueueBroadcast(new GameMessagePublicUpdatePropertyFloat(obj, (PropertyFloat)result, Convert.ToDouble(value)));
                     }
                     else if (propType.Equals("PropertyString", StringComparison.OrdinalIgnoreCase))
                     {
-                        session.Player.UpdateProperty(obj, (PropertyString)result, value, true);
+                        obj.SetProperty((PropertyString)result, value);
+                        obj.EnqueueBroadcast(new GameMessagePublicUpdatePropertyString(obj, (PropertyString)result, value));
                     }
                     else if (propType.Equals("PropertyInstanceId", StringComparison.OrdinalIgnoreCase))
                     {
-                        var iidValue = Convert.ToUInt32(value, value.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? 16 : 10);
-
-                        session.Player.UpdateProperty(obj, (PropertyInstanceId)result, iidValue, true);
+                        obj.SetProperty((PropertyInstanceId)result, Convert.ToUInt32(value));
+                        obj.EnqueueBroadcast(new GameMessagePublicUpdateInstanceID(obj, (PropertyInstanceId)result, new ObjectGuid(Convert.ToUInt32(value))));
                     }
                     else if (propType.Equals("PropertyDataId", StringComparison.OrdinalIgnoreCase))
                     {
-                        var didValue = Convert.ToUInt32(value, value.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? 16 : 10);
-
-                        session.Player.UpdateProperty(obj, (PropertyDataId)result, didValue, true);
+                        obj.SetProperty((PropertyDataId)result, Convert.ToUInt32(value));
+                        obj.EnqueueBroadcast(new GameMessagePublicUpdatePropertyDataID(obj, (PropertyDataId)result, Convert.ToUInt32(value)));
                     }
                 }
                 catch (Exception e)
@@ -1968,7 +1945,7 @@ namespace ACE.Server.Command.Handlers
         /// <summary>
         /// Sets the house purchase time for this player
         /// </summary>
-        [CommandHandler("setpurchasetime", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Sets the house purchase time for this player")]
+        [CommandHandler("setpurchasetime", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Sets the house purchase time for this player", "/setpurchasetime")]
         public static void HandleSetPurchaseTime(Session session, params string[] parameters)
         {
             var currentTime = DateTime.UtcNow;
@@ -1998,7 +1975,7 @@ namespace ACE.Server.Command.Handlers
         /// <summary>
         /// Toggles the display for player damage info
         /// </summary>
-        [CommandHandler("debugdamage", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Toggles the display for player damage info", "<attack|defense|all|on|off>")]
+        [CommandHandler("debugdamage", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Toggles the display for player damage info", "/debugdamage <attack|defense|all|on|off>")]
         public static void HandleDebugDamage(Session session, params string[] parameters)
         {
             // get last appraisal creature target
@@ -2390,12 +2367,6 @@ namespace ACE.Server.Command.Handlers
             }
         }
 
-        [CommandHandler("forcelogout", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Force log off of specified character or last appraised character")]
-        public static void HandleForceLogout(Session session, params string[] parameters)
-        {
-            HandleForceLogoff(session, parameters);
-        }
-
         [CommandHandler("forcelogoff", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Force log off of specified character or last appraised character")]
         public static void HandleForceLogoff(Session session, params string[] parameters)
         {
@@ -2429,62 +2400,10 @@ namespace ACE.Server.Command.Handlers
 
             if (target != null && target is Player player)
             {
-                //if (player.Session != null)
-                //    player.Session.LogOffPlayer(true);
-                //else
-                //    player.LogOut();
-
-                var msg = $"Player {player.Name} (0x{player.Guid}) found in PlayerManager.onlinePlayers.\n";
-                msg += $"------- Session: {(player.Session != null ? $"{player.Session.EndPoint}" : "NULL")}\n";
-                msg += $"------- CurrentLandblock: {(player.CurrentLandblock != null ? $"0x{player.CurrentLandblock.Id:X4}" : "NULL")}\n";
-                msg += $"------- Location: {(player.Location != null ? $"{player.Location.ToLOCString()}" : "NULL")}\n";
-                msg += $"------- IsLoggingOut: {player.IsLoggingOut}\n";
-                msg += $"------- IsInDeathProcess: {player.IsInDeathProcess}\n";
-                var foundOnLandblock = false;
-                if (player.CurrentLandblock != null)
-                    foundOnLandblock = LandblockManager.GetLandblock(player.CurrentLandblock.Id, false).GetObject(player.Guid) != null;
-                msg += $"------- FoundOnLandblock: {foundOnLandblock}\n";
-                var playerForcedLogOffRequested = player.ForcedLogOffRequested;
-                msg += $"------- ForcedLogOffRequested: {playerForcedLogOffRequested}\n";
-
-                msg += "Log off path taken: ";
-                if (playerForcedLogOffRequested)
-                {
-                    player.Session?.Terminate(Network.Enum.SessionTerminationReason.ForcedLogOffRequested, new GameMessageBootAccount(" because the character was forced to log off by an admin"));
-                    player.ForceLogoff();
-                    msg += "player.Session?.Terminate() | player.ForceLogoff()";
-                }
-                else if (player.Session != null)
-                {
-                    player.ForcedLogOffRequested = true;
-                    player.Session.Terminate(Network.Enum.SessionTerminationReason.ForcedLogOffRequested, new GameMessageBootAccount(" because the character was forced to log off by an admin"));
-                    msg += "player.ForcedLogOffRequested = true | player.Session.Terminate()";
-                }
-                else if (player.CurrentLandblock != null && foundOnLandblock)
-                {
-                    player.ForcedLogOffRequested = true;
+                if (player.Session != null)
+                    player.Session.LogOffPlayer(true);
+                else
                     player.LogOut();
-                    msg += "player.ForcedLogOffRequested = true | player.LogOut()";
-                }
-                else if (player.IsInDeathProcess)
-                {
-                    player.ForcedLogOffRequested = true;
-                    player.IsInDeathProcess = false;
-                    player.LogOut_Inner(true);
-                    msg += "player.ForcedLogOffRequested = true | player.IsInDeathProcess = false | player.LogOut_Inner(true)";
-                }
-                else
-                {
-                    player.ForcedLogOffRequested = true;
-                    msg += "player.ForcedLogOffRequested = true";
-                }
-
-                if (!playerForcedLogOffRequested)
-                    msg += "\nUse this command again if this player does not properly log off within the next minute.";
-                else
-                    msg += "\nPlease send the above report to ACEmulator development team via Discord.";
-
-                CommandHandlerHelper.WriteOutputInfo(session, msg);
 
                 PlayerManager.BroadcastToAuditChannel(session?.Player, $"Forcing Log Off of {player.Name}...");
             }
@@ -2538,7 +2457,7 @@ namespace ACE.Server.Command.Handlers
         /// <summary>
         /// Enables / disables spell component burning
         /// </summary>
-        [CommandHandler("safecomps", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Enables / disables spell component burning", "<on/off>")]
+        [CommandHandler("safecomps", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Enables / disables spell component burning", "/safecomps <on/off>")]
         public static void HandleSafeComps(Session session, params string[] parameters)
         {
             var safeComps = true;
@@ -3440,8 +3359,7 @@ namespace ACE.Server.Command.Handlers
             if (!confirmed)
             {
                 var msg = $"Are you sure you want to delevel {session.Player.Name} to level {delevel}?";
-                if (!session.Player.ConfirmationManager.EnqueueSend(new Confirmation_Custom(session.Player.Guid, () => HandleDelevel(session, true, parameters)), msg))
-                    session.Player.SendWeenieError(WeenieError.ConfirmationInProgress);
+                session.Player.ConfirmationManager.EnqueueSend(new Confirmation_Custom(session.Player.Guid, () => HandleDelevel(session, true, parameters)), msg);
                 return;
             }
 
@@ -3612,89 +3530,6 @@ namespace ACE.Server.Command.Handlers
                     //spacer = true;
                 }
             }
-        }
-
-        private static readonly Dictionary<AetheriaColor, uint> AetheriaWcids = new Dictionary<AetheriaColor, uint>()
-        {
-            { AetheriaColor.Blue,   Aetheria.AetheriaBlue },
-            { AetheriaColor.Yellow, Aetheria.AetheriaYellow },
-            { AetheriaColor.Red,    Aetheria.AetheriaRed }
-        };
-
-        private static readonly Dictionary<Surge, SpellId> SurgeSpells = new Dictionary<Surge, SpellId>()
-        {
-            { Surge.Destruction,  SpellId.AetheriaProcDamageBoost },
-            { Surge.Protection,   SpellId.AetheriaProcDamageReduction },
-            { Surge.Regeneration, SpellId.AetheriaProcHealthOverTime },
-            { Surge.Affliction,   SpellId.AetheriaProcDamageOverTime },
-            { Surge.Festering,    SpellId.AetheriaProcHealDebuff },
-        };
-
-        [CommandHandler("ciaetheria", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 4, "Spawns an Aetheria in the player's inventory", "[color] [set] [surge] [level]" +
-            "\nColor: Blue, Yellow, Red" +
-            "\nSet: Defense, Destruction, Fury, Growth, Vigor" +
-            "\nSurge: Destruction, Protection, Regeneration, Affliction, Festering" +
-            "\nLevel: 1 - 5")]
-        public static void HandleCIAetheria(Session session, params string[] parameters)
-        {
-            if (!Enum.TryParse(parameters[0], true, out AetheriaColor color))
-            {
-                CommandHandlerHelper.WriteOutputInfo(session, $"Invalid color: {parameters[0]}", ChatMessageType.Broadcast);
-                CommandHandlerHelper.WriteOutputInfo(session, $"Available colors: Blue, Yellow, Red", ChatMessageType.Broadcast);
-                return;
-            }
-
-            if (!Enum.TryParse(parameters[1], true, out Sigil set))
-            {
-                CommandHandlerHelper.WriteOutputInfo(session, $"Invalid set: {parameters[1]}", ChatMessageType.Broadcast);
-                CommandHandlerHelper.WriteOutputInfo(session, $"Available sets: Defense, Destruction, Fury, Growth, Vigor", ChatMessageType.Broadcast);
-                return;
-            }
-
-            if (!Enum.TryParse(parameters[2], true, out Surge surgeSpell))
-            {
-                CommandHandlerHelper.WriteOutputInfo(session, $"Invalid surge spell: {parameters[2]}", ChatMessageType.Broadcast);
-                CommandHandlerHelper.WriteOutputInfo(session, $"Available surge spells: Destruction, Protection, Regeneration, Affliction, Festering", ChatMessageType.Broadcast);
-                return;
-            }
-
-            if (!int.TryParse(parameters[3], out var maxLevel) || maxLevel < 1 || maxLevel > 5)
-            {
-                CommandHandlerHelper.WriteOutputInfo(session, $"Invalid level: {parameters[3]}", ChatMessageType.Broadcast);
-                CommandHandlerHelper.WriteOutputInfo(session, $"Available levels: 1 - 5", ChatMessageType.Broadcast);
-                return;
-            }
-
-            var wcid = AetheriaWcids[color];
-
-            var wo = WorldObjectFactory.CreateNewWorldObject(wcid) as Gem;
-
-            if (wo == null)
-            {
-                CommandHandlerHelper.WriteOutputInfo(session, $"Failed to create Aetheria wcid", ChatMessageType.Broadcast);
-                return;
-            }
-
-            wo.ItemMaxLevel = maxLevel;
-            wo.IconOverlayId = LootGenerationFactory.IconOverlay_ItemMaxLevel[wo.ItemMaxLevel.Value - 1];
-
-            wo.EquipmentSetId = Aetheria.SigilToEquipmentSet[set];
-
-            wo.IconId = Aetheria.Icons[color][set];
-
-            var procSpell = SurgeSpells[surgeSpell];
-
-            wo.ProcSpell = (uint)procSpell;
-
-            if (Aetheria.SurgeTargetSelf[procSpell])
-                wo.ProcSpellSelfTargeted = true;
-
-            wo.ValidLocations = Aetheria.ColorToMask[color];
-
-            wo.ItemTotalXp = (long)ExperienceSystem.ItemLevelToTotalXP(wo.ItemMaxLevel.Value, (ulong)wo.ItemBaseXp, wo.ItemMaxLevel.Value, wo.ItemXpStyle.Value);
-
-            if (!session.Player.TryCreateInInventoryWithNetworking(wo))
-                CommandHandlerHelper.WriteOutputInfo(session, $"Failed to add Aetheria item to player inventory", ChatMessageType.Broadcast);
         }
     }
 }

@@ -1124,7 +1124,7 @@ namespace ACE.Server.Entity
             foreach (var wo in worldObjects.ToList())
             {
                 if (!wo.Value.BiotaOriginatedFromOrHasBeenSavedToDatabase())
-                    wo.Value.Destroy(false, true);
+                    wo.Value.Destroy(false);
                 else
                     RemoveWorldObjectInternal(wo.Key);
             }
@@ -1135,8 +1135,6 @@ namespace ACE.Server.Entity
 
             // remove physics landblock
             LScape.unload_landblock(landblockID);
-
-            PhysicsLandblock.release_shadow_objs();
         }
 
         public void DestroyAllNonPlayerObjects()

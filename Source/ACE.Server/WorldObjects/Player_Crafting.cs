@@ -142,7 +142,7 @@ namespace ACE.Server.WorldObjects
                     continue;
                 }
 
-                if (IsTrading && item.IsBeingTradedOrContainsItemBeingTraded(ItemsInTradeWindow))
+                if (IsTrading && ItemsInTradeWindow.Contains(item.Guid))
                 {
                     SendWeenieError(WeenieError.YouCannotSalvageItemsInTrading);
                     continue;

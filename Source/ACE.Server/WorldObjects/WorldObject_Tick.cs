@@ -316,12 +316,7 @@ namespace ACE.Server.WorldObjects
                     if (curCell.ID != cellBefore)
                         Location.LandblockId = new LandblockId(curCell.ID);
 
-                    // skip ObjCellID check when updating from physics
-                    // TODO: update to newer version of ACE.Entity.Position
-                    Location.PositionX = newPos.X;
-                    Location.PositionY = newPos.Y;
-                    Location.PositionZ = newPos.Z;
-
+                    Location.Pos = newPos;
                     Location.Rotation = PhysicsObj.Position.Frame.Orientation;
 
                     //if (landblockUpdate)

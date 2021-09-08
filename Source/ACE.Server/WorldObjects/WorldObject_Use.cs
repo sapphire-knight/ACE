@@ -264,8 +264,7 @@ namespace ACE.Server.WorldObjects
             {
                 var playerLevel = player.Level ?? 1;
                 if (playerLevel < UseRequiresLevel.Value)
-                    //return new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.YouMustBe_ToUseItemMagic, $"level {UseRequiresLevel.Value}")); // not retail
-                    return new ActivationResult(new GameEventCommunicationTransientString(player.Session, "You are not high enough level to use that!"));
+                    return new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.YouMustBe_ToUseItemMagic, $"level {UseRequiresLevel.Value}"));
             }
 
             // verify attribute / vital limits

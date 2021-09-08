@@ -281,7 +281,6 @@ namespace ACE.Server.WorldObjects
             // was the position successfully moved to?
             // use the physics position as the source-of-truth?
             var newPos = PhysicsObj.Position;
-
             if (Location.LandblockId.Raw != newPos.ObjCellID)
             {
                 var prevBlockCell = Location.LandblockId.Raw;
@@ -305,12 +304,7 @@ namespace ACE.Server.WorldObjects
                     //Console.WriteLine("Moving " + Name + " to " + Location.LandblockId.Raw.ToString("X8"));
             }
 
-            // skip ObjCellID check when updating from physics
-            // TODO: update to newer version of ACE.Entity.Position
-            Location.PositionX = newPos.Frame.Origin.X;
-            Location.PositionY = newPos.Frame.Origin.Y;
-            Location.PositionZ = newPos.Frame.Origin.Z;
-
+            Location.Pos = newPos.Frame.Origin;
             Location.Rotation = newPos.Frame.Orientation;
 
             if (DebugMove)

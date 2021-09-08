@@ -69,6 +69,11 @@
                     "stacksize": "1"
                 },
                 {
+                    "weenieId": "31000",
+                    "name": "Blackmoor's Favor",
+                    "stacksize": "1"
+                },
+                {
                     "weenieId": "20646",
                     "name": "Ust",
                     "stacksize": "1"

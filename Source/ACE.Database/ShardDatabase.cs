@@ -568,24 +568,9 @@ namespace ACE.Database
 
         public List<Character> GetCharacters(uint accountId, bool includeDeleted)
         {
-            return GetCharacterList(accountId, includeDeleted);
-        }
-
-        public Character GetCharacter(uint characterId)
-        {
-            return GetCharacterList(0, true, characterId).FirstOrDefault();
-        }
-
-        private static List<Character> GetCharacterList(uint accountID, bool includeDeleted, uint characterID = 0)
-        {
             var context = new ShardDbContext();
 
-            IQueryable<Character> query;
-
-            if (accountID > 0)
-                query = context.Character.Where(r => r.AccountId == accountID && (includeDeleted || !r.IsDeleted));
-            else
-                query = context.Character.Where(r => r.Id == characterID && (includeDeleted || !r.IsDeleted));
+            var query = context.Character.Where(r => r.AccountId == accountId && (includeDeleted || !r.IsDeleted));
 
             var results = query.ToList();
 
@@ -609,7 +594,7 @@ namespace ACE.Database
             var context = new ShardDbContext();
 
             var result = context.Character
-                .FirstOrDefault(r => r.Name.Equals(name, StringComparison.OrdinalIgnoreCase) && !r.IsDeleted);
+                .FirstOrDefault(r => r.Name == name.ToLower() && !r.IsDeleted);
 
             return result;
         }

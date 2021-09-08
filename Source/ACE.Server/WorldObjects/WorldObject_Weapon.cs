@@ -452,7 +452,7 @@ namespace ACE.Server.WorldObjects
 
         public bool HasImbuedEffect(ImbuedEffectType type)
         {
-            return ImbuedEffect.HasFlag(type);
+            return (GetImbuedEffects() & type) != 0;
         }
 
         public static ImbuedEffectType GetRendDamageType(DamageType damageType)

@@ -38811,5 +38811,6 @@ namespace ACE.Server.Factories.Enum
         ace87277_ulgrimsstout = 87277,
         ace87283_shadowvoidknightvod = 87283,
         ace87284_ravenaugur = 87284,
+        ace777772232_Liner = 777772232,
     }
 }

@@ -182,8 +182,6 @@ namespace ACE.Server.WorldObjects
 
             MagicState = new MagicState(this);
 
-            FoodState = new FoodState(this);
-
             RecordCast = new RecordCast(this);
 
             AttackQueue = new AttackQueue(this);
@@ -540,7 +538,7 @@ namespace ACE.Server.WorldObjects
                 CurrentActivePet.Destroy();
 
             // If we're in the dying animation process, we cannot logout until that animation completes..
-            if (IsInDeathProcess)
+            if (isInDeathProcess)
                 return;
 
             LogOut_Final();
@@ -552,7 +550,10 @@ namespace ACE.Server.WorldObjects
             {
                 if (skipAnimations)
                 {
-                    FinalizeLogout();
+                    CurrentLandblock?.RemoveWorldObject(Guid, false);
+                    SetPropertiesAtLogOut();
+                    SavePlayerToDatabase();
+                    PlayerManager.SwitchPlayerFromOnlineToOffline(this);
                 }
                 else
                 {
@@ -571,10 +572,13 @@ namespace ACE.Server.WorldObjects
                     logoutChain.AddAction(WorldManager.ActionQueue, () =>
                     {
                         // If we're in the dying animation process, we cannot RemoveWorldObject and logout until that animation completes..
-                        if (IsInDeathProcess)
+                        if (isInDeathProcess)
                             return;
 
-                        FinalizeLogout();
+                        CurrentLandblock?.RemoveWorldObject(Guid, false);
+                        SetPropertiesAtLogOut();
+                        SavePlayerToDatabase();
+                        PlayerManager.SwitchPlayerFromOnlineToOffline(this);
                     });
 
                     // close any open landblock containers (chests / corpses)
@@ -591,31 +595,10 @@ namespace ACE.Server.WorldObjects
             }
             else
             {
-                FinalizeLogout();
+                SetPropertiesAtLogOut();
+                SavePlayerToDatabase();
+                PlayerManager.SwitchPlayerFromOnlineToOffline(this);
             }
-        }
-
-        public bool ForcedLogOffRequested;
-
-        /// <summary>
-        /// Force Log off a player requested to log out by an admin command forcelogoff/forcelogout or the ServerManager.<para />
-        /// THIS FUNCTION FOR SYSTEM USE ONLY; If you want to force a player to logout, use Session.LogOffPlayer().
-        /// </summary>
-        public void ForceLogoff()
-        {
-            if (!ForcedLogOffRequested) return;
-
-            FinalizeLogout();
-
-            ForcedLogOffRequested = false;
-        }
-
-        private void FinalizeLogout()
-        {
-            CurrentLandblock?.RemoveWorldObject(Guid, false);
-            SetPropertiesAtLogOut();
-            SavePlayerToDatabase();
-            PlayerManager.SwitchPlayerFromOnlineToOffline(this);
         }
 
         public void HandleMRT()

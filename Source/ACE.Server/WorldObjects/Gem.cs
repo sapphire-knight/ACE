@@ -77,8 +77,7 @@ namespace ACE.Server.WorldObjects
             {
                 var msg = $"Are you sure you want to use {Name}?";
                 var confirm = new Confirmation_Custom(player.Guid, () => ActOnUse(activator, true));
-                if (!player.ConfirmationManager.EnqueueSend(confirm, msg))
-                    player.SendWeenieError(WeenieError.ConfirmationInProgress);
+                player.ConfirmationManager.EnqueueSend(confirm, msg);
                 return;
             }
 

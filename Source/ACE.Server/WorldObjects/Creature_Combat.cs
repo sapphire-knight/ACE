@@ -55,7 +55,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Switches a player or creature to a new combat stance
         /// </summary>
-        public float SetCombatMode(CombatMode combatMode, out float queueTime, bool forceHandCombat = false, bool animOnly = false)
+        public float SetCombatMode(CombatMode combatMode, out float queueTime, bool forceHandCombat = false)
         {
             // check if combat stance actually needs switching
             var combatStance = forceHandCombat ? MotionStance.HandCombat : GetCombatStance();
@@ -71,12 +71,11 @@ namespace ACE.Server.WorldObjects
             if (CombatMode == CombatMode.Missile)
                 HideAmmo();
 
-            if (!animOnly)
-                CombatMode = combatMode;
+            CombatMode = combatMode;
 
             var animLength = 0.0f;
 
-            switch (combatMode)
+            switch (CombatMode)
             {
                 case CombatMode.NonCombat:
                     animLength = HandleSwitchToPeaceMode();
@@ -1040,8 +1039,6 @@ namespace ACE.Server.WorldObjects
                 {
                     if (sourcePet && targetPet)     // combat pets can't damage other pets
                         return false;
-                    else if (sourcePet && target.PlayerKillerStatus == PlayerKillerStatus.PK || targetPet && PlayerKillerStatus == PlayerKillerStatus.PK)   // combat pets can't damage pk-only creatures (ie. faction banners)
-                        return false;
                     else
                         return true;
                 }
@@ -1155,7 +1152,7 @@ namespace ACE.Server.WorldObjects
             var motion = CurrentMotionState.MotionState.ForwardCommand.ToString();
             foreach (DamageType damageType in Enum.GetValues(typeof(DamageType)))
             {
-                if ((damageTypes & damageType) != 0 && !damageType.IsMultiDamage())
+                if ((damageTypes & damageType) != 0)
                 {
                     // handle multiple damage types
                     if (damageType == DamageType.Slash && motion.Contains("Thrust"))
@@ -1266,7 +1263,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public int GetDefenseImbues(ImbuedEffectType imbuedEffectType)
         {
-            return EquippedObjects.Values.Count(i => i.ImbuedEffect.HasFlag(imbuedEffectType));
+            return EquippedObjects.Values.Count(i => i.GetImbuedEffects().HasFlag(imbuedEffectType));
         }
 
         /// <summary>

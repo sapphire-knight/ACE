@@ -21,6 +21,8 @@ namespace ACE.Entity.Enum.Properties
         [SendOnLogin]
         MaximumLuminance    = 7,
         InteractionReqs     = 8,
+        [SendOnLogin]
+        VitaeCpPool = 129,
 
         /* custom */
         [ServerOnly]
@@ -29,6 +31,8 @@ namespace ACE.Entity.Enum.Properties
         AllegianceXPGenerated = 9001,
         [ServerOnly]
         AllegianceXPReceived  = 9002,
+        [ServerOnly]
+        TotalXpBeyond = 9004,
         [ServerOnly]
         VerifyXp              = 9003
     }

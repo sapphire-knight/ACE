@@ -21,6 +21,7 @@ namespace ACE.Server.Factories.Tables
         {
             ( 1, 0.95f ),
             ( 2, 0.05f ),
+            ( 3, 1.00f ),
         };
 
         private static ChanceTable<int> ClothingJewelryRating = new ChanceTable<int>()
@@ -28,6 +29,7 @@ namespace ACE.Server.Factories.Tables
             ( 1, 0.70f ),
             ( 2, 0.25f ),
             ( 3, 0.05f ),
+            ( 4, 1.00f ),
         };
 
         public static int Roll(WorldObject wo, TreasureDeath profile, TreasureRoll roll)

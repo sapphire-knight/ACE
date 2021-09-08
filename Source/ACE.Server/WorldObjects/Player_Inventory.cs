@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
-using System.Threading;
-
 using ACE.Database;
 using ACE.DatLoader;
 using ACE.DatLoader.FileTypes;
@@ -166,33 +163,6 @@ namespace ACE.Server.WorldObjects
             return true;
         }
 
-        private void DeepSave(WorldObject item)
-        {
-            var biotas = new Collection<(Biota biota, ReaderWriterLockSlim rwLock)>();
-
-            if (item.ChangesDetected)
-            {
-                item.SaveBiotaToDatabase(false);
-                biotas.Add((item.Biota, item.BiotaDatabaseLock));
-            }
-
-            // if the player is dropping a container to the landblock,
-            // we must ensure any items within the container also have the correct properties
-            if (item is Container container)
-            {
-                foreach (var subItem in container.Inventory.Values)
-                {
-                    if (subItem.ChangesDetected)
-                    {
-                        subItem.SaveBiotaToDatabase(false);
-                        biotas.Add((subItem.Biota, subItem.BiotaDatabaseLock));
-                    }
-                }
-            }
-
-            DatabaseManager.Shard.SaveBiotasInParallel(biotas, result => { });
-        }
-
         public enum RemoveFromInventoryAction
         {
             None,
@@ -239,7 +209,7 @@ namespace ACE.Server.WorldObjects
                 // If we don't, the player can drop the item, log out, and log back in. If the landblock hasn't queued a database save in that time,
                 // the player will end up loading with this object in their inventory even though the landblock is the true owner. This is because
                 // when we load player inventory, the database still has the record that shows this player as the ContainerId for the item.
-                DeepSave(item);
+                item.SaveBiotaToDatabase();
             }
 
             if (removeFromInventoryAction == RemoveFromInventoryAction.ConsumeItem || removeFromInventoryAction == RemoveFromInventoryAction.TradeItem)
@@ -417,7 +387,7 @@ namespace ACE.Server.WorldObjects
                 // If we don't, the player can drop the item, log out, and log back in. If the landblock hasn't queued a database save in that time,
                 // the player will end up loading with this object in their inventory even though the landblock is the true owner. This is because
                 // when we load player inventory, the database still has the record that shows this player as the ContainerId for the item.
-                DeepSave(item);
+                item.SaveBiotaToDatabase();
             }
 
             if (dequipObjectAction != DequipObjectAction.ToCorpseOnDeath)
@@ -837,7 +807,7 @@ namespace ACE.Server.WorldObjects
                 return false;
             }
 
-            if (IsTrading && item.IsBeingTradedOrContainsItemBeingTraded(ItemsInTradeWindow))
+            if (IsTrading && ItemsInTradeWindow.Contains(item.Guid))
             {
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, itemGuid, WeenieError.TradeItemBeingTraded));
                 return false;
@@ -1225,7 +1195,7 @@ namespace ACE.Server.WorldObjects
                     // If we don't, the player can drop the item, log out, and log back in. If the landblock hasn't queued a database save in that time,
                     // the player will end up loading with this object in their inventory even though the landblock is the true owner. This is because
                     // when we load player inventory, the database still has the record that shows this player as the ContainerId for the item.
-                    DeepSave(item);
+                    item.SaveBiotaToDatabase();
                 }
             }
 
@@ -1302,7 +1272,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (IsTrading && item.IsBeingTradedOrContainsItemBeingTraded(ItemsInTradeWindow))
+            if (IsTrading && ItemsInTradeWindow.Contains(item.Guid))
             {
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full, WeenieError.TradeItemBeingTraded));
                 return;
@@ -1318,52 +1288,7 @@ namespace ACE.Server.WorldObjects
                     return;
                 }
 
-                if (wasEquipped)
-                {
-                    if (!TryDequipObjectWithNetworking(item.Guid.Full, out _, DequipObjectAction.DropItem))
-                    {
-                        Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Failed to dequip item!")); // Custom error message
-                        Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
-                        return;
-                    }
-                }
-                else
-                {
-                    if (!TryRemoveFromInventoryWithNetworking(item.Guid.Full, out _, RemoveFromInventoryAction.DropItem))
-                    {
-                        Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Failed to remove item from inventory!")); // Custom error message
-                        Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
-                        return;
-                    }
-                }
-
-                if (TryDropItem(item))
-                {
-                    // drop success
-                    Session.Network.EnqueueSend(
-                        new GameMessagePublicUpdateInstanceID(item, PropertyInstanceId.Container, ObjectGuid.Invalid),
-                        new GameEventItemServerSaysMoveItem(Session, item),
-                        new GameMessageUpdatePosition(item));
-
-                    EnqueueBroadcast(new GameMessageSound(Guid, Sound.DropItem));
-
-                    item.EmoteManager.OnDrop(this);
-                }
-                else
-                {
-                    // drop failed, re-add to inventory
-                    if (TryAddToInventory(item))
-                    {
-                        Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.EncumbranceVal, EncumbranceVal ?? 0));
-
-                        if (item.WeenieType == WeenieType.Coin || item.WeenieType == WeenieType.Container)
-                            UpdateCoinValue();
-
-                        Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
-                    }
-                    else
-                        log.Warn($"0x{item.Guid}:{item.Name} for player {Name} lost from HandleActionDropItem failure.");
-                }
+                HandleActionDropItem_Inner(item, wasEquipped);
 
                 var returnStance = new Motion(CurrentMotionState.Stance);
                 EnqueueBroadcastMotion(returnStance);
@@ -1372,36 +1297,64 @@ namespace ACE.Server.WorldObjects
             actionChain.EnqueueChain();
         }
 
-        private bool TryDropItem(WorldObject item)
+        private void HandleActionDropItem_Inner(WorldObject item, bool wasEquipped)
         {
-            item.Location = new Position(Location);
-            item.Placement = ACE.Entity.Enum.Placement.Resting;  // This is needed to make items lay flat on the ground.
-
-            // increased precision for non-ethereal objects
-            var ethereal = item.Ethereal;
-            item.Ethereal = true;
-
-            if (!CurrentLandblock.AddWorldObject(item))
-                return false;
-
-            // use radius?
             var targetPos = Location.InFrontOf(1.1f);
             targetPos.LandblockId = new LandblockId(targetPos.GetCell());
 
-            // try slide to new position
-            var transit = item.PhysicsObj.transition(item.PhysicsObj.Position, new Physics.Common.Position(targetPos), false);
-
-            if (transit != null && transit.SpherePath.CurCell != null)
+            if (!IsDirectVisible(targetPos))
             {
-                item.PhysicsObj.SetPositionInternal(transit);
-
-                item.SyncLocation();
-
-                item.SendUpdatePosition(true);
+                // not enough room to drop item
+                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full, WeenieError.BadDrop));
+                return;
             }
-            item.Ethereal = ethereal;
 
-            return true;
+            if (wasEquipped)
+            {
+                if (!TryDequipObjectWithNetworking(item.Guid.Full, out _, DequipObjectAction.DropItem))
+                {
+                    Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Failed to dequip item!")); // Custom error message
+                    Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
+                    return;
+                }
+            }
+            else
+            {
+                if (!TryRemoveFromInventoryWithNetworking(item.Guid.Full, out _, RemoveFromInventoryAction.DropItem))
+                {
+                    Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Failed to remove item from inventory!")); // Custom error message
+                    Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
+                    return;
+                }
+            }
+
+            item.Location = new Position(targetPos);
+            item.Placement = ACE.Entity.Enum.Placement.Resting; // This is needed to make items lay flat on the ground.
+
+            // TODO: get landblock for targetPos
+            if (CurrentLandblock.AddWorldObject(item))
+            {
+                Session.Network.EnqueueSend(
+                    new GameMessagePublicUpdateInstanceID(item, PropertyInstanceId.Container, ObjectGuid.Invalid),
+                    new GameEventItemServerSaysMoveItem(Session, item),
+                    new GameMessageUpdatePosition(item));
+
+                EnqueueBroadcast(new GameMessageSound(Guid, Sound.DropItem));
+
+                item.EmoteManager.OnDrop(this);
+
+            }
+            else
+            {
+                TryAddToInventory(item);
+
+                Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.EncumbranceVal, EncumbranceVal ?? 0));
+
+                if (item.WeenieType == WeenieType.Coin || item.WeenieType == WeenieType.Container)
+                    UpdateCoinValue();
+
+                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
+            }
         }
 
         /// <summary>
@@ -1424,7 +1377,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }*/
 
-            var item = FindObject(new ObjectGuid(itemGuid), SearchLocations.LocationsICanMove, out var fromContainer, out var rootOwner, out var wasEquipped);
+            var item = FindObject(new ObjectGuid(itemGuid), SearchLocations.LocationsICanMove, out _, out var rootOwner, out var wasEquipped);
 
             if (item == null)
             {
@@ -1501,7 +1454,7 @@ namespace ACE.Server.WorldObjects
                             return;
                         }
 
-                        if (DoHandleActionGetAndWieldItem(item, fromContainer, rootOwner, wasEquipped, wieldedLocation))
+                        if (DoHandleActionGetAndWieldItem(item, rootOwner, wasEquipped, wieldedLocation))
                         {
                             Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.EncumbranceVal, EncumbranceVal ?? 0));
 
@@ -1519,13 +1472,13 @@ namespace ACE.Server.WorldObjects
             }
             else
             {
-                DoHandleActionGetAndWieldItem(item, fromContainer, rootOwner, wasEquipped, wieldedLocation);
+                DoHandleActionGetAndWieldItem(item, rootOwner, wasEquipped, wieldedLocation);
             }
         }
 
-        private bool DoHandleActionGetAndWieldItem(WorldObject item, Container fromContainer, Container itemRootOwner, bool wasEquipped, EquipMask wieldedLocation)
+        private bool DoHandleActionGetAndWieldItem(WorldObject item, Container itemRootOwner, bool wasEquipped, EquipMask wieldedLocation)
         {
-            // Console.WriteLine($"-> DoHandleActionGetAndWieldItem({item.Name}, {itemRootOwner?.Name}, {wasEquipped}, {wieldedLocation})");
+            //Console.WriteLine($"-> DoHandleActionGetAndWieldItem({item.Name}, {itemRootOwner?.Name}, {wasEquipped}, {wieldedLocation})");
 
             var wieldError = CheckWieldRequirements(item);
 
@@ -1538,12 +1491,6 @@ namespace ACE.Server.WorldObjects
 
             // the client handles dequipping a lot of conflicting items automatically,
             // but there are some cases it misses that must be handled specifically here:
-            if (((item.CurrentWieldedLocation ?? 0) & EquipMask.SelectablePlusAmmo) == 0 && !CheckWeaponCollision(item, wieldedLocation))
-            {
-                // Is this generic message good enough? -- '<item> can't be wielded'?
-                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full, wieldError));
-                return false;
-            }
 
             // Unwield wand/missile launcher/two-handed if dual wielding
             if (wieldedLocation == EquipMask.Shield && !item.IsShield)
@@ -1737,199 +1684,8 @@ namespace ACE.Server.WorldObjects
                 return false;
             }
 
-            // if wielding from a loose container, we must save immediately
-            if (fromContainer != null && !fromContainer.Stuck)
-                item.SaveBiotaToDatabase();
-
             return true;
         }
-
-        /// <summary>
-        /// Client will automatically send any unequip (PutItemInContainer) message before the GetAndWield, but misses some instances and can be memory hacked to ignore others.
-        //  Let's just make sure our status is accurate before actually equipping an item! 
-        /// </summary>
-        /// <param name="item">The weapon we are attempting to equip</param>
-        /// <returns>True if the items were successfuly remove and the new item can attempt to be equipped, otherwise false</returns>
-        private bool CheckWeaponCollision(WorldObject item = null, EquipMask? wieldedLocation = null, CombatMode? combatMode = null)
-        {
-            // Client actually allows these equip scenarios:
-            // Shield with a Two-Handed weapon.
-
-            combatMode = combatMode ?? CombatMode;
-
-            WorldObject offhand, mainhand, ammo;
-            if (item != null && wieldedLocation != null)
-            {
-                // Equipping a new item
-                switch (wieldedLocation)
-                {
-                    case EquipMask.Shield:
-                        // Remove any items in the shield/offhand slot, two-handed weapons, missile weapons or casters
-                        offhand = GetEquippedOffHand();
-                        if (offhand != null)
-                        {
-                            log.Warn($"'{Name}' tried to wield '{item.Name}' ({item.Guid}) in slot {wieldedLocation}, but is occupied by '{offhand.Name}'");
-                            return false;
-                        }
-
-                        mainhand = GetEquippedMainHand();
-                        // Remove any Two Handed, Caster (magic), or Missile Weapons
-                        if (mainhand != null && (mainhand.IsTwoHanded || mainhand.IsCaster || mainhand.IsAmmoLauncher))
-                        {
-                            log.Warn($"'{Name}' tried to wield '{item.Name}' ({item.Guid}) in slot {wieldedLocation}, which conflicts with '{mainhand.Name}'");
-                            return false;
-                        }
-
-                        break;
-                    case EquipMask.MissileWeapon:
-                        // Should not have any items in either hand for ammo launchers (bows, atlatls)
-                        // Thrown weapons (ie. phials) can have a shield
-                        offhand = GetEquippedOffHand();
-                        if (offhand != null && item.IsAmmoLauncher)
-                        {
-                            log.Warn($"'{Name}' tried to wield '{item.Name}' ({item.Guid}) in slot {wieldedLocation}, which conflicts with '{offhand.Name}'");
-                            return false;
-                        }
-
-                        mainhand = GetEquippedMainHand();
-                        if (mainhand != null)
-                        {
-                            log.Warn($"'{Name}' tried to wield '{item.Name}' ({item.Guid}) in slot {wieldedLocation}, which conflicts with '{mainhand.Name}'");
-                            return false;
-                        }
-
-                        // Ensure our ammo types align properly
-                        ammo = GetEquippedAmmo();
-                        if (item.AmmoType != null && ammo != null && ammo.AmmoType != item.AmmoType)
-                        {
-                            log.Warn($"'{Name}' tried to wield '{item.Name}' ({item.Guid}), AmmoType: {item.AmmoType} in slot {wieldedLocation}, which conflicts with ammo of '{ammo.Name}' ({ammo.AmmoType})");
-                            return false;
-                        }
-
-                        break;
-                    case EquipMask.MissileAmmo:
-                        // Ensure our ammo types align properly
-                        mainhand = GetEquippedMainHand();
-                        if (mainhand != null && mainhand.AmmoType != null && item.AmmoType != null && mainhand.AmmoType != item.AmmoType)
-                        {
-                            log.Warn($"'{Name}' tried to wield '{item.Name}' ({item.Guid}), AmmoType: {item.AmmoType} in slot {wieldedLocation}, which conflicts with AmmoType of '{mainhand.Name}' ({mainhand.AmmoType})");
-                            return false;
-                        }
-
-                        break;
-                    case EquipMask.TwoHanded:
-                        // Should not have any items in the shield/offhand slot, two-handed weapons, missile weapons or casters
-                        offhand = GetEquippedOffHand();
-                        if (offhand != null)
-                        {
-                            log.Warn($"'{Name}' tried to wield '{item.Name}' ({item.Guid}) in slot {wieldedLocation}, which conflicts with '{offhand.Name}'");
-                            return false;
-                        }
-
-                        mainhand = GetEquippedMainHand();
-                        // Remove anything in the main hand!
-                        if (mainhand != null)
-                        {
-                            log.Warn($"'{Name}' tried to wield '{item.Name}' ({item.Guid}) in slot {wieldedLocation}, which conflicts with '{mainhand.Name}'");
-                            return false;
-                        }
-                        break;
-                    case EquipMask.MeleeWeapon:
-                        // Should not have any Caster, Missile, or TwoHanders equipped
-                        offhand = GetEquippedOffHand();
-                        if (offhand != null && (offhand.IsTwoHanded || offhand.IsCaster || offhand.IsAmmoLauncher))
-                        {
-                            log.Warn($"'{Name}' tried to wield '{item.Name}' ({item.Guid}) in slot {wieldedLocation}, which conflicts with '{offhand.Name}'");
-                            return false;
-                        }
-
-                        mainhand = GetEquippedMainHand();
-                        if (mainhand != null && (mainhand.IsTwoHanded || mainhand.IsCaster || mainhand.IsAmmoLauncher))
-                        {
-                            log.Warn($"'{Name}' tried to wield '{item.Name}' ({item.Guid}) in slot {wieldedLocation}, which conflicts with '{mainhand.Name}'");
-                            return false;
-                        }
-                        break;
-
-                    case EquipMask.Held:
-                        // Should not have any items in offhand slot for casters only
-                        if (item.IsCaster)
-                        {
-                            offhand = GetEquippedOffHand();
-                            if (offhand != null)
-                            {
-                                log.Warn($"'{Name}' tried to wield '{item.Name}' ({item.Guid}) in slot {wieldedLocation}, which conflicts with '{offhand.Name}'");
-                                return false;
-                            }
-                        }
-
-                        // Should not have any items still in mainhand slot
-                        mainhand = GetEquippedMainHand();
-                        if (mainhand != null)
-                        {
-                            log.Warn($"'{Name}' tried to wield '{item.Name}' ({item.Guid}) in slot {wieldedLocation}, which conflicts with '{mainhand.Name}'");
-                            return false;
-                        }
-
-                        // items such as 23307 - Ball of Gunk have EquipMask.Held and no DefaultCombatMode
-                        // can only be wielded in NonCombat mode
-                        if (combatMode != CombatMode.NonCombat && item.DefaultCombatStyle == null)
-                        {
-                            log.Warn($"'{Name}' tried to wield '{item.Name}' ({item.Guid}) in slot {wieldedLocation}, which conflicts with {combatMode} combat mode");
-                            return false;
-                        }
-                        break;
-                }
-            }
-            else
-            {
-                // changing combat mode
-
-                // Just do a quick sanity check to ensure the player isn't wielding two weapons they shouldn't
-                mainhand = GetEquippedMainHand();
-                offhand = GetEquippedOffHand();
-
-                // Wielding just one item is perfectly fine...its when they have two if might be suspect
-                if (mainhand != null)
-                {
-                    if (offhand != null)
-                    {
-                        // Can't wield these with anything else!
-                        if (mainhand.IsTwoHanded || mainhand.IsAmmoLauncher || mainhand.IsCaster)
-                        {
-                            log.Warn($"'{Name}' is illegally wielding '{mainhand.Name}' ({mainhand.Guid}) and {offhand.Name}' ({offhand.Guid})");
-                            return false;
-                        }
-                    }
-
-                    // Ensure our ammo matches up properly
-                    if (mainhand.IsAmmoLauncher)
-                    {
-                        ammo = GetEquippedAmmo();
-                        if (ammo != null && ammo.AmmoType != null && mainhand.AmmoType != null && ammo.AmmoType != mainhand.AmmoType)
-                        {
-                            log.Warn($"'{Name}' is illegally wielding '{mainhand.Name}' ({mainhand.Guid}) with ammo {ammo.Name}' ({ammo.AmmoType})");
-                            return false;
-                        }
-                    }
-
-                    // items such as 23307 - Ball of Gunk have EquipMask.Held and no DefaultCombatMode
-                    // they can be placed in main hand in NonCombat mode, but trying to wield them in combat mode results in the client-side error
-                    // 'You can't enter combat mode while wielding the <item>'
-                    // however, this client-side check can be bypassed with vtank
-
-                    if (mainhand.DefaultCombatStyle == null)
-                    {
-                        log.Warn($"'{Name}' is illegally wielding '{mainhand.Name}' ({mainhand.Guid}) in {combatMode} combat mode");
-                        return false;
-                    }
-                }
-            }
-
-            // All good at this point
-            return true;
-        }
-
 
         private bool DoHandleActionGetAndWieldItem_DequipItemToInventory(WorldObject mainWeapon, WorldObject item)
         {
@@ -2174,7 +1930,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (IsTrading && stack.IsBeingTradedOrContainsItemBeingTraded(ItemsInTradeWindow))
+            if (IsTrading && ItemsInTradeWindow.Contains(stack.Guid))
             {
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, stackId, WeenieError.TradeItemBeingTraded));
                 return;
@@ -2376,7 +2132,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (IsTrading && stack.IsBeingTradedOrContainsItemBeingTraded(ItemsInTradeWindow))
+            if (IsTrading && ItemsInTradeWindow.Contains(stack.Guid))
             {
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, stackId, WeenieError.TradeItemBeingTraded));
                 return;
@@ -2417,24 +2173,17 @@ namespace ACE.Server.WorldObjects
                 if (stack.WeenieType == WeenieType.Coin)
                     UpdateCoinValue();
 
-                if (TryDropItem(newStack))
+                newStack.Location = new Position(Location.InFrontOf(1.1f));
+                newStack.Placement = ACE.Entity.Enum.Placement.Resting; // This is needed to make items lay flat on the ground.
+
+                if (CurrentLandblock.AddWorldObject(newStack))
                 {
                     EnqueueBroadcast(new GameMessageSound(Guid, Sound.DropItem));
                 }
                 else
                 {
-                    // restore original stack
-                    if (AdjustStack(stack, amount, stackFoundInContainer, stackRootOwner))
-                    {
-                        Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.EncumbranceVal, EncumbranceVal ?? 0));
-
-                        if (stack.WeenieType == WeenieType.Coin)
-                            UpdateCoinValue();
-                    }
-                    else
-                        log.WarnFormat("Partial stack 0x{0:X8}:{1} for player {2} lost from HandleActionStackableSplitTo3D failure.", stack.Guid.Full, stack.Name, Name);
-
-                    newStack.Destroy();
+                    // todo: if this happens, we should just put split amount back into the original stack
+                    log.WarnFormat("Partial stack 0x{0:X8}:{1} for player {2} lost from HandleActionStackableSplitTo3D failure.", stack.Guid.Full, stack.Name, Name);
                 }
 
                 var returnStance = new Motion(CurrentMotionState.Stance);
@@ -2569,12 +2318,12 @@ namespace ACE.Server.WorldObjects
 
             if (IsTrading)
             {
-                if (sourceStack.IsBeingTradedOrContainsItemBeingTraded(ItemsInTradeWindow))
+                if (ItemsInTradeWindow.Contains(sourceStack.Guid))
                 {
                     Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, mergeFromGuid, WeenieError.TradeItemBeingTraded));
                     return;
                 }
-                if (targetStack.IsBeingTradedOrContainsItemBeingTraded(ItemsInTradeWindow))
+                if (ItemsInTradeWindow.Contains(targetStack.Guid))
                 {
                     Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, mergeToGuid, WeenieError.TradeItemBeingTraded));
                     return;
@@ -2814,7 +2563,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (IsTrading && item.IsBeingTradedOrContainsItemBeingTraded(ItemsInTradeWindow))
+            if (IsTrading && ItemsInTradeWindow.Contains(item.Guid))
             {
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full, WeenieError.TradeItemBeingTraded));
                 return;
@@ -2850,7 +2599,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (IsTrading && item.IsBeingTradedOrContainsItemBeingTraded(ItemsInTradeWindow))
+            if (IsTrading && ItemsInTradeWindow.Contains(item.Guid))
             {
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full, WeenieError.TradeItemBeingTraded));
                 return;
@@ -2860,23 +2609,12 @@ namespace ACE.Server.WorldObjects
             {
                 Session.Network.EnqueueSend(new GameEventWeenieErrorWithString(Session, WeenieErrorWithString._IsNotAcceptingGiftsRightNow, target.Name));
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
-                var msg = new GameMessageSystemChat($"{Name} tries to give you {(item.StackSize > 1 ? $"{item.StackSize} " : "")}{item.GetNameWithMaterial(item.StackSize)}.", ChatMessageType.Broadcast);
-                target.Session.Network.EnqueueSend(msg);
                 return;
             }
 
             if (target.IsLoggingOut)
             {
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full, WeenieError.None));
-                return;
-            }
-
-            if (target.IsBusy)
-            {
-                Session.Network.EnqueueSend(new GameEventWeenieErrorWithString(Session, WeenieErrorWithString._IsTooBusyToAcceptGifts, target.Name));
-                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
-                var msg = new GameMessageSystemChat($"{Name} tries to give you {(item.StackSize > 1 ? $"{item.StackSize} " : "")}{item.GetNameWithMaterial(item.StackSize)}.", ChatMessageType.Broadcast);
-                target.Session.Network.EnqueueSend(msg);
                 return;
             }
 
@@ -2972,7 +2710,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (IsTrading && item.IsBeingTradedOrContainsItemBeingTraded(ItemsInTradeWindow))
+            if (IsTrading && ItemsInTradeWindow.Contains(item.Guid))
             {
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full, WeenieError.TradeItemBeingTraded));
                 return;
@@ -3296,7 +3034,7 @@ namespace ACE.Server.WorldObjects
             Prev_PutItemInContainer[0] = new PutItemInContainerEvent(itemGuid, containerGuid, placement);
         }
         
-        public void GiveFromEmote(WorldObject emoter, uint weenieClassId, int amount = 1, int palette = 0, float shade = 0)
+        public void GiveFromEmote(WorldObject emoter, uint weenieClassId, int amount = 1)
         {
             if (emoter is null || weenieClassId == 0)
             {
@@ -3372,11 +3110,6 @@ namespace ACE.Server.WorldObjects
                     }
                     else
                         amount -= 1;
-
-                    if (palette > 0)
-                        item.PaletteTemplate = palette;
-                    if (shade > 0)
-                        item.Shade = shade;
 
                     TryCreateForGive(emoter, item);
                 }
@@ -3521,33 +3254,6 @@ namespace ACE.Server.WorldObjects
             if (item.WeenieType == WeenieType.Coin)
                 UpdateCoinValue();
 
-            return true;
-        }
-
-        /// <summary>
-        /// Used with UpdateObject to maintain container placement sync on server
-        /// </summary>
-        public bool MoveItemToFirstContainerSlot(WorldObject target)
-        {
-            var container = target.Container as Container;
-
-            if (container == null)
-            {
-                log.Error($"{Name}.Player_Inventory.MoveItemToFirstContainerSlot() - failed to find target item {target.Name} ({target.Guid}) in player inventory");
-                return false;
-            }
-
-            if (!TryRemoveFromInventory(target.Guid))
-            {
-                log.Error($"{Name}.Player_Inventory.MoveItemToFirstContainerSlot() - failed to remove target item {target.Name} ({target.Guid}) from player inventory");
-                return false;
-            }
-
-            if (!container.TryAddToInventory(target, 0, true, false))
-            {
-                log.Error($"{Name}.Player_Inventory.MoveItemToFirstContainerSlot() - failed to re-add target item {target.Name} ({target.Guid}) to player inventory");
-                return false;
-            }
             return true;
         }
 

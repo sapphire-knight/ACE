@@ -105,7 +105,7 @@ namespace ACE.Server.WorldObjects
             foreach (var creature in PhysicsObj.ObjMaint.GetVisibleTargetsValuesOfTypeCreature())
             {
                 // why does this need to be in here?
-                if (creature.IsDead || !creature.Attackable || creature.Visibility)
+                if (creature.IsDead)
                 {
                     //Console.WriteLine($"{Name}.GetNearbyMonsters(): refusing to add dead creature {creature.Name} ({creature.Guid})");
                     continue;
