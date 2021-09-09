@@ -12,8 +12,8 @@ namespace ACE.Server.DuskfallMods
         public const double RAISE_ATTR_MULT = 3292201940D;
         public const double RAISE_ATTR_MULT_DECAY = 7.995D;
         public const double RAISE_ATTR_LVL_DECAY = 0.001D;
-        public const long RAISE_RATING_MULT = 15000L;
-        public const long RAISE_WORLD_MULT = 5000L;
+        public const long RAISE_RATING_MULT = 15000000;
+        public const long RAISE_WORLD_MULT = 5000000;
         public const uint RAISE_MAX = 100;
     }
 }

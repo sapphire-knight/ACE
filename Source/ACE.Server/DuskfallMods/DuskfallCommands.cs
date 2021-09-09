@@ -54,7 +54,7 @@ namespace ACE.Server.Command.Handlers
             //Acceptable /raise target/amount
             if (target.IsAttribute())
             {
-                //Attributes  (done in a switch to support more control in the future if things cost different amounts)
+                //Requires the RaiseTarget enum to line up with the PropertyAttribute-- probably should do this a better way
                 var attribute = session.Player.Attributes[(PropertyAttribute)target];
 
                 //Require max attr first
@@ -104,7 +104,7 @@ namespace ACE.Server.Command.Handlers
             switch (target)
             {
                 case RaiseTarget.World:
-                case RaiseTarget.Enlighten:
+                //case RaiseTarget.Enlighten: //Leave in if you want an alias
                     ChatPacket.SendServerMessage(session, $"You have raised your World Aug to {player.LumAugAllSkills}! Skills increased by {amt} for {lumCost:N0} Luminance.", ChatMessageType.Broadcast);
                     session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(player, PropertyInt.LumAugAllSkills, player.LumAugAllSkills));
                     return;
