@@ -15,10 +15,4 @@ When possible modifications and configuration will be added to [ACE.Server\Duskf
 
 No guarantees can be made for quality of code, adding a feature, or responding.  This is a project for when I have free time.
 
-
-
-You may [view or add suggestions here](https://hackmd.io/enRPlC8OTuq_C9eWBX0gbA?edit):
-
-```
-<iframe width="100%" height="500" src="https://hackmd.io/enRPlC8OTuq_C9eWBX0gbA?view" frameborder="0"></iframe>
-```
+You may [view or add suggestions here](https://hackmd.io/enRPlC8OTuq_C9eWBX0gbA?edit).
