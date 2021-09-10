@@ -43,8 +43,12 @@ namespace ACE.Server.Command.Handlers
             var currentLevel = target.GetLevel(player);
             if(currentLevel < target.StartingLevel())
             {
-                session.Network.EnqueueSend(new GameMessageSystemChat($"You must raise {target} to {target.StartingLevel()} with Nalicana before using /raise on it.", ChatMessageType.Broadcast));
-                return;
+                //If you wanted to gate it
+                //session.Network.EnqueueSend(new GameMessageSystemChat($"You must raise {target} to {target.StartingLevel()} with Nalicana before using /raise on it.", ChatMessageType.Broadcast));
+                //return;
+                //Gift it
+                session.Network.EnqueueSend(new GameMessageSystemChat($"You've been granted {target.StartingLevel()} {target} through Nalicana's benificence.", ChatMessageType.Broadcast));
+                target.SetLevel(player, target.StartingLevel());
             }
 
             //Get the cost
@@ -73,12 +77,10 @@ namespace ACE.Server.Command.Handlers
                 }
 
                 //Otherwise go ahead raising the attribute
-                //attribute.StartingValue += (uint)amt; //Moved to SetLevel
                 target.SetLevel(player, currentLevel + (int)amt);
                 player.AvailableExperience -= cost;
 
                 //Update the player
-                //TODO: Decide if player updates should be done in RaiseTarget.SetLevel
                 session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt64(player, PropertyInt64.AvailableExperience, player.AvailableExperience ?? 0));
                 session.Network.EnqueueSend(new GameMessagePrivateUpdateAttribute(player, attribute));
                 session.Network.EnqueueSend(new GameMessageSystemChat($"Your base {target} is now {attribute.Base}! Spent {cost:N0} xp.", ChatMessageType.Advancement));
