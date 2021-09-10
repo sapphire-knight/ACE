@@ -17,6 +17,7 @@ namespace ACE.Server.Command.Handlers
         {
             var player = session.Player;
 
+            player.MaximumLuminance = long.MaxValue / 2;
             foreach (var target in Enum.GetValues<RaiseTarget>())
             {
                 var level = target.GetLevel(player);
@@ -41,7 +42,6 @@ namespace ACE.Server.Command.Handlers
                 {
                     player.AvailableExperience += cost;
                     ChatPacket.SendServerMessage(session, $"Refunding {timesLeveled} levels of {target} for {cost:N0} xp.", ChatMessageType.Broadcast);
-                    session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt64(player, PropertyInt64.AvailableExperience, player.AvailableExperience ?? 0));
                     session.Network.EnqueueSend(new GameMessagePrivateUpdateAttribute(player, attribute));
                 }
                 else
@@ -56,6 +56,9 @@ namespace ACE.Server.Command.Handlers
             session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(player, PropertyInt.LumAugAllSkills, player.LumAugAllSkills));
             session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(player, PropertyInt.LumAugDamageReductionRating, player.LumAugDamageReductionRating));
             session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(player, PropertyInt.LumAugDamageRating, player.LumAugDamageRating));
+            //Send updated resources
+            session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt64(player, PropertyInt64.AvailableLuminance, player.AvailableLuminance ?? 0));
+            session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt64(player, PropertyInt64.AvailableExperience, player.AvailableExperience ?? 0));
 
             //Todo: enable for server / player name
             //if (parameters?.Length > 0)

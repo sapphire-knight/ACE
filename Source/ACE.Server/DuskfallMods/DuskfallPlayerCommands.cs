@@ -78,41 +78,40 @@ namespace ACE.Server.Command.Handlers
                 return;
             }
 
+            //Handle luminance
             if (cost > player.AvailableLuminance || !player.SpendLuminance(cost))
             {
                 var lumMult = (target == RaiseTarget.World ? DuskfallSettings.RAISE_WORLD_MULT : DuskfallSettings.RAISE_RATING_MULT);
                 ChatPacket.SendServerMessage(session, $"Not enough Luminance, you require {lumMult} Luminance per point of {target}.", ChatMessageType.Broadcast);
                 return;
             }
+            //Update luminance available
+            session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt64(player, PropertyInt64.AvailableLuminance, player.AvailableLuminance ?? 0));
 
             //If successful in spending luminance level the target
+            target.SetLevel(player, currentLevel + (int)amt);
+
+            //...and update player
             switch (target)
             {
                 case RaiseTarget.World:
-                //case RaiseTarget.Enlighten: //Leave in if you want an alias
                     ChatPacket.SendServerMessage(session, $"You have raised your World Aug to {player.LumAugAllSkills}! Skills increased by {amt} for {cost:N0} Luminance.", ChatMessageType.Broadcast);
                     session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(player, PropertyInt.LumAugAllSkills, player.LumAugAllSkills));
-                    return;
+                    break;
                 case RaiseTarget.Defense:
-                    player.LumAugDamageReductionRating += (int)amt;
                     ChatPacket.SendServerMessage(session, $"Your Damage Reduction Rating has increased by {amt} to {player.LumAugDamageReductionRating} for {cost:N0} Luminance.", ChatMessageType.Broadcast);
                     session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(player, PropertyInt.LumAugDamageReductionRating, player.LumAugDamageReductionRating));
-                    return;
+                    break;
                 case RaiseTarget.Offense:
-                    player.LumAugDamageRating += (int)amt;
                     ChatPacket.SendServerMessage(session, $"Your Damage Rating has increased by {amt} to {player.LumAugDamageRating} for {cost:N0} Luminance.", ChatMessageType.Broadcast);
                     session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(player, PropertyInt.LumAugDamageRating, player.LumAugDamageRating));
-                    return;
+                    break;
             }
         }
 
         [CommandHandler("vassalxp", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Shows full experience from vassals.")]
         public static void HandleShowVassalXp(Session session, params string[] parameters)
         {
-            //Needless null checking
-            if (session?.Player == null)
-                return;
-
             CommandHandlerHelper.WriteOutputInfo(session, "Experience from vassals:", ChatMessageType.Broadcast);
             foreach (var vassalNode in AllegianceManager.GetAllegianceNode(session?.Player).Vassals.Values)
             {

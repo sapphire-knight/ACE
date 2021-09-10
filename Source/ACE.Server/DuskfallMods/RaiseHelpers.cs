@@ -11,6 +11,7 @@ namespace ACE.Server.DuskfallMods
 {
     static class RaiseHelpers
     {
+        //TODO: Decide if this should update player of lum/exp and the raised property
         public static void SetLevel(this RaiseTarget target, Player player, int level)
         {
             //If it's an attribute being changed, make sure to update the starting value
@@ -125,7 +126,6 @@ namespace ACE.Server.DuskfallMods
             return true;
         }
     }
-
 
     enum RaiseTarget
     {
