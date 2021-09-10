@@ -17,7 +17,7 @@ namespace ACE.Server.Command.Handlers
         {
             var player = session.Player;
 
-            player.MaximumLuminance = long.MaxValue / 2;
+            //Try to refund every target
             foreach (var target in Enum.GetValues<RaiseTarget>())
             {
                 var level = target.GetLevel(player);

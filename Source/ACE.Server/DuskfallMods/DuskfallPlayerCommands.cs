@@ -39,8 +39,15 @@ namespace ACE.Server.Command.Handlers
                 return;
             }
 
-            //Get the cost
+            //Check if the Rating has already been maxed normally
             var currentLevel = target.GetLevel(player);
+            if(currentLevel < target.StartingLevel())
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"You must raise {target} to {target.StartingLevel()} with Nalicana before using /raise on it.", ChatMessageType.Broadcast));
+                return;
+            }
+
+            //Get the cost
             long cost = long.MaxValue;
             if (!target.TryGetCostToLevel(currentLevel, amt, out cost))
             {

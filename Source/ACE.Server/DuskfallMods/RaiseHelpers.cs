@@ -79,11 +79,12 @@ namespace ACE.Server.DuskfallMods
             {
                 //Attributes
                 case RaiseTarget t when t.IsAttribute(): return 1;
-                //Ratings
+                //Ratings return the normal max.
+                ////Comment out to allow leveling down to 0 which would let a player go through the normal process to net a little Lum
+                case RaiseTarget.World: return 10;  //Max World 
+                case RaiseTarget.Defense: return 5;
+                case RaiseTarget.Offense: return 5;
                 default: return 0;
-                //case RaiseTarget.World: return player.LumAugAllSkills;
-                //case RaiseTarget.Defense: return player.LumAugDamageReductionRating;
-                //case RaiseTarget.Offense: return player.LumAugDamageRating;
             }
         }
         public static bool TryGetCostToLevel(this RaiseTarget target, int startLevel, int numLevels, out long cost)
