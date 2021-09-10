@@ -19,6 +19,5 @@ No guarantees can be made for quality of code, adding a feature, or responding. 
 
 You may [view or add suggestions here](https://hackmd.io/enRPlC8OTuq_C9eWBX0gbA?edit):
 
-```
+
 <iframe width="100%" height="500" src="https://hackmd.io/enRPlC8OTuq_C9eWBX0gbA?view" frameborder="0"></iframe>
-```
