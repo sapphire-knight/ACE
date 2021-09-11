@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace ACE.Server.DuskfallMods
 {
-    static class RaiseHelpers
+    static class RaiseTargetHelpers
     {
         //TODO: Decide if this should update player of lum/exp and the raised property
         public static void SetLevel(this RaiseTarget target, Player player, int level)
@@ -126,18 +126,5 @@ namespace ACE.Server.DuskfallMods
             attribute = player.Attributes[(PropertyAttribute)target];  //TODO: Requires the RaiseTarget enum to line up with the PropertyAttribute-- probably should do this a better way
             return true;
         }
-    }
-
-    enum RaiseTarget
-    {
-        //Match attributes with ACE.Entity.Enum.Properties.PropertyAttribute to work with casting
-        Str = PropertyAttribute.Strength,
-        End = PropertyAttribute.Endurance,
-        Quick = PropertyAttribute.Quickness,
-        Coord = PropertyAttribute.Coordination,
-        Focus = PropertyAttribute.Focus,
-        Self = PropertyAttribute.Self,
-        //Ratings
-        World, Offense, Defense
     }
 }
