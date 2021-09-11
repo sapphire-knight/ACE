@@ -12,32 +12,92 @@ namespace ACE.Server.Command.Handlers
 {
     public static class DuskfallAdminCommands
     {
-        //TODO: Decide if refunding yourself should should be open to players
-        [CommandHandler("raiserefund", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, 0, "Refunds costs associated with /raise.")]
+        [CommandHandler("raiserefund", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, 0, "Refunds costs associated with /raise.", "/raiserefund [name|ID] [Raise target]")]
         public static void HandleRaiseRefund(Session session, params string[] parameters)
         {
-            DuskfallRaise.RaiseRefundToPlayer(session.Player);
-        }
+            var player = session.Player;
 
-        [CommandHandler("raiserefundto", AccessLevel.Admin, CommandHandlerFlag.None, 1, "Refunds costs associated with /raise.", "/raiserefund [*|name]")]
-        public static void HandleRaiseRefundTo(Session session, params string[] parameters)
-        {
-            //Refund all players
-            if (parameters[0] == "*")
+            //Try to refund every target
+            foreach (var target in Enum.GetValues<RaiseTarget>())
             {
-                PlayerManager.GetAllPlayers().ForEach(p => DuskfallRaise.RaiseRefundToPlayer((Player)p));
-                return;
-            }
+                var level = target.GetLevel(player);
+                var startLevel = target.StartingLevel();
+                var timesLeveled = level - startLevel;
 
-            //Refund by name/ID
-            var player = PlayerManager.FindByName(parameters[0]) as Player;
-            if (player == null)
-            {
-                ChatPacket.SendServerMessage(session, $"No player named {parameters[0]} found.", ChatMessageType.Broadcast);
-                return;
-            }
+                //Check if anything invested
+                if(timesLeveled < 1)
+                {
+                    continue;
+                }
 
-            DuskfallRaise.RaiseRefundToPlayer(player);
+                //Get resources spent
+                if (!target.TryGetCostToLevel(startLevel, timesLeveled, out long cost))
+                {
+                    ChatPacket.SendServerMessage(session, $"Failed to get cost for {timesLeveled} levels of {target}.", ChatMessageType.Broadcast);
+                    continue;
+                }
+
+                //Refund the resource and update the player
+                if (target.TryGetAttribute(player, out var attribute))
+                {
+                    player.AvailableExperience += cost;
+                    ChatPacket.SendServerMessage(session, $"Refunding {timesLeveled} levels of {target} for {cost:N0} xp.", ChatMessageType.Broadcast);
+                    session.Network.EnqueueSend(new GameMessagePrivateUpdateAttribute(player, attribute));
+                }
+                else
+                {
+                    player.AvailableLuminance += cost;
+                    ChatPacket.SendServerMessage(session, $"Refunding {timesLeveled} levels of {target} for {cost:N0} lum.", ChatMessageType.Broadcast);
+                }
+                //Finally, set the level to what it should be
+                target.SetLevel(player, startLevel);
+            }
+            //Send player their updated ratings
+            session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(player, PropertyInt.LumAugAllSkills, player.LumAugAllSkills));
+            session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(player, PropertyInt.LumAugDamageReductionRating, player.LumAugDamageReductionRating));
+            session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(player, PropertyInt.LumAugDamageRating, player.LumAugDamageRating));
+            //Send updated resources
+            session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt64(player, PropertyInt64.AvailableLuminance, player.AvailableLuminance ?? 0));
+            session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt64(player, PropertyInt64.AvailableExperience, player.AvailableExperience ?? 0));
+
+            //Todo: enable for server / player name
+            //if (parameters?.Length > 0)
+            //{
+            //    List<CommandParameterHelpers.ACECommandParameter> aceParams = new List<CommandParameterHelpers.ACECommandParameter>()
+            //    {
+            //        new CommandParameterHelpers.ACECommandParameter() {
+            //            Type = CommandParameterHelpers.ACECommandParameterType.OnlinePlayerNameOrIid,
+            //            Required = false,
+            //            DefaultValue = session.Player
+            //        },
+            //        new CommandParameterHelpers.ACECommandParameter()
+            //        {
+            //            Type = CommandParameterHelpers.ACECommandParameterType.PositiveLong,
+            //            Required = true,
+            //            ErrorMessage = "You must specify the amount of xp."
+            //        }
+            //    };
+            //    if (CommandParameterHelpers.ResolveACEParameters(session, parameters, aceParams))
+            //    {
+            //        try
+            //        {
+            //            var amount = aceParams[1].AsLong;
+            //            aceParams[0].AsPlayer.GrantXP(amount, XpType.Admin, ShareType.None);
+
+            //            session.Network.EnqueueSend(new GameMessageSystemChat($"{amount:N0} experience granted.", ChatMessageType.Advancement));
+
+            //            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} granted {amount:N0} experience to {aceParams[0].AsPlayer.Name}.");
+
+            //            return;
+            //        }
+            //        catch
+            //        {
+            //            //overflow
+            //        }
+            //    }
+            //}
+
+            //ChatPacket.SendServerMessage(session, "Usage: /grantxp [name] 1234 (max 999999999999)", ChatMessageType.Broadcast);
         }
     }
 }
