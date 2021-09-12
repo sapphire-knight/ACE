@@ -12,13 +12,6 @@ namespace ACE.Server.Command.Handlers
 {
     public static class DuskfallAdminCommands
     {
-        //TODO: Decide if refunding yourself should should be open to players
-        [CommandHandler("raiserefund", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, 0, "Refunds costs associated with /raise.")]
-        public static void HandleRaiseRefund(Session session, params string[] parameters)
-        {
-            DuskfallRaise.RaiseRefundToPlayer(session.Player);
-        }
-
         [CommandHandler("raiserefundto", AccessLevel.Admin, CommandHandlerFlag.None, 1, "Refunds costs associated with /raise.", "/raiserefund [*|name|id]")]
         public static void HandleRaiseRefundTo(Session session, params string[] parameters)
         {

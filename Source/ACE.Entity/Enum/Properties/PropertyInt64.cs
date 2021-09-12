@@ -34,7 +34,15 @@ namespace ACE.Entity.Enum.Properties
         [ServerOnly]
         TotalXpBeyond = 9004,
         [ServerOnly]
-        VerifyXp              = 9003
+        VerifyXp              = 9003,
+
+
+
+
+
+        /*-----------------DUSKFALL MODDED------------------*/
+        [ServerOnly]
+        LastRefundTimestamp = 20000,
     }
 
     public static class PropertyInt64Extensions

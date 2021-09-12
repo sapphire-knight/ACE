@@ -38,7 +38,7 @@ namespace ACE.Server.Command.Handlers
                 session.Network.EnqueueSend(new GameMessageSystemChat($"Provide an amount from 1-{DuskfallSettings.RAISE_MAX}: /raise <{String.Join("|", Enum.GetNames(typeof(RaiseTarget)))}> [amount]", ChatMessageType.Broadcast));
                 return;
             }
-
+            
             //Check if the Rating has already been maxed normally
             var currentLevel = target.GetLevel(player);
             if(currentLevel < target.StartingLevel())
@@ -116,6 +116,26 @@ namespace ACE.Server.Command.Handlers
                     session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(player, PropertyInt.LumAugDamageRating, player.LumAugDamageRating));
                     break;
             }
+        }
+
+        [CommandHandler("raiserefund", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0, "Refunds costs associated with /raise.")]
+        public static void HandleRaiseRefund(Session session, params string[] parameters)
+        {
+            var player = session.Player;
+            var timeLapse = DateTime.Now - new DateTime(player.LastRaisedRefundTimestamp);
+            var timeToUse = DuskfallSettings.RAISE_TIME_BETWEEN_REFUND - timeLapse;
+
+            //Check if enough time has passed
+            if (timeToUse.TotalSeconds > 0)
+            {
+                ChatPacket.SendServerMessage(session, $"You must wait {timeToUse.TotalMinutes:0.##} minutes before refunding.", ChatMessageType.Broadcast);
+                return;
+            }
+
+            //Refund player and set last use
+            //TODO: Check if the player has anything to refund before setting a cooldown
+            DuskfallRaise.RaiseRefundToPlayer(player);
+            player.LastRaisedRefundTimestamp = DateTime.Now.Ticks;
         }
 
         [CommandHandler("vassalxp", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Shows full experience from vassals.")]

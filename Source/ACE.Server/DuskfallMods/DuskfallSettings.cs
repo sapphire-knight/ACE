@@ -16,5 +16,6 @@ namespace ACE.Server.DuskfallMods
         public const long RAISE_RATING_MULT = 15000000;
         public const long RAISE_WORLD_MULT = 5000000;
         public const uint RAISE_MAX = 1000;
+        public static readonly TimeSpan RAISE_TIME_BETWEEN_REFUND = TimeSpan.FromMinutes(60.0);
     }
 }
