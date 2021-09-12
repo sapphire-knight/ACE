@@ -6,7 +6,8 @@ using ACE.Server.WorldObjects;
 using ACE.Entity.Enum.Properties;
 using ACE.Server.DuskfallMods;
 using System.Collections.Generic;
-
+using ACE.Server.Entity;
+using ACE.Server.Managers;
 
 namespace ACE.Server.DuskfallMods
 {
@@ -17,7 +18,7 @@ namespace ACE.Server.DuskfallMods
         /// </summary>
         /// <param name="player">Player to refund</param>
         /// <returns>Update messages that would be sent to the player.</returns>
-        public static List<string> RaiseRefundOfflinePlayer(Player player)
+        private static List<string> RaiseRefundResources(Player player)
         {
             var playerMessages = new List<string>();
 
@@ -67,6 +68,12 @@ namespace ACE.Server.DuskfallMods
             return playerMessages;
         }
 
+        public static void RaiseRefundToOfflinePlayer(OfflinePlayer p)
+        {
+            //PlayerManager.SwitchPlayerFromOfflineToOnline(p);
+            p.RaiseRefundOnLogin = true;    //Handled on next login
+        }
+
         /// <summary>
         /// Refunds all resources used in the /raise command and informs the refunded player if possible.
         /// </summary>
@@ -78,7 +85,7 @@ namespace ACE.Server.DuskfallMods
                 return;
 
             //Refund the player
-            var refundMessages = RaiseRefundOfflinePlayer(player);
+            var refundMessages = RaiseRefundResources(player);
 
             //Providing a session will use that for the messaging, in case an admin wants to specify using their session.
             //Falls back to the players session if available
@@ -97,6 +104,11 @@ namespace ACE.Server.DuskfallMods
             UpdatePlayerRaiseProperties(player, session);
         }
 
+        /// <summary>
+        /// Send property updates for any value that may be changed through the /raise command.
+        /// </summary>
+        /// <param name="player"></param>
+        /// <param name="session"></param>
         private static void UpdatePlayerRaiseProperties(Player player, Session session)
         {
             //Send updated attributes

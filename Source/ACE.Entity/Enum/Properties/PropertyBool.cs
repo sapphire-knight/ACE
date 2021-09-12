@@ -187,6 +187,10 @@ namespace ACE.Entity.Enum.Properties
         FreeAttributeResetRenewed        = 9008,
         [ServerOnly]
         SkillTemplesTimerReset           = 9009,
+
+
+        /*-----------------DUSKFALL MODDED------------------*/
+        RaiseRefundOnLogin = 20000,
     }
 
     public static class PropertyBoolExtensions

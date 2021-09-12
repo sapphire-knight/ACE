@@ -191,6 +191,10 @@
     <None Include="..\..\Database\Optional\**" CopyToOutputDirectory="PreserveNewest" LinkBase="DatabaseSetupScripts\Optional\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="DuskfallMods\Dire-est\" />
+  </ItemGroup>
+
   <Target Name="ChangeAliasesOfStrongNameAssemblies" BeforeTargets="FindReferenceAssembliesForReferences;ResolveReferences">
     <ItemGroup>
       <ReferencePath Condition="'%(FileName)' == 'MySqlConnector'">

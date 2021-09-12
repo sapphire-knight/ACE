@@ -56,10 +56,18 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyInt64.TotalXpBeyond);
             set { if (!value.HasValue) RemoveProperty(PropertyInt64.TotalXpBeyond); else SetProperty(PropertyInt64.TotalXpBeyond, value.Value); }
         }
+
         public int? LastLevel
         {
             get => GetProperty(PropertyInt.LastLevel);
             set { if (!value.HasValue) RemoveProperty(PropertyInt.LastLevel); else SetProperty(PropertyInt.LastLevel, value.Value); }
+        }
+
+        //Shared with OfflinePlayer
+        public bool RaiseRefundOnLogin
+        {
+            get => GetProperty(PropertyBool.RaiseRefundOnLogin) ?? false;
+            set => SetProperty(PropertyBool.RaiseRefundOnLogin, value);
         }
     }
 }
