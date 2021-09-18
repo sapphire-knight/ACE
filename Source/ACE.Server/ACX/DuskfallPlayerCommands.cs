@@ -5,11 +5,11 @@ using ACE.Server.Network;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects;
 using ACE.Entity.Enum.Properties;
-using ACE.Server.DuskfallMods;
+using ACE.Server.ACX;
 
 namespace ACE.Server.Command.Handlers
 {
-    public static class DuskfallPlayerCommands
+    public static class ACXPlayerCommands
     {
         [CommandHandler("raise", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "/raise str/end/coord/focus/self, /raise enlighten, /raise offense, and /raise defense..", "/raise <target> <amount>")]
         public static void HandleAttribute(Session session, params string[] parameters)
@@ -33,9 +33,9 @@ namespace ACE.Server.Command.Handlers
                 }
             }
             //Check for bad amounts to level
-            if (amt < 1 || amt > DuskfallSettings.RAISE_MAX)
+            if (amt < 1 || amt > ACXSettings.RAISE_MAX)
             {
-                session.Network.EnqueueSend(new GameMessageSystemChat($"Provide an amount from 1-{DuskfallSettings.RAISE_MAX}: /raise <{String.Join("|", Enum.GetNames(typeof(RaiseTarget)))}> [amount]", ChatMessageType.Broadcast));
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Provide an amount from 1-{ACXSettings.RAISE_MAX}: /raise <{String.Join("|", Enum.GetNames(typeof(RaiseTarget)))}> [amount]", ChatMessageType.Broadcast));
                 return;
             }
             
@@ -90,7 +90,7 @@ namespace ACE.Server.Command.Handlers
             //Handle luminance
             if (cost > player.AvailableLuminance || !player.SpendLuminance(cost))
             {
-                var lumMult = (target == RaiseTarget.World ? DuskfallSettings.RAISE_WORLD_MULT : DuskfallSettings.RAISE_RATING_MULT);
+                var lumMult = (target == RaiseTarget.World ? ACXSettings.RAISE_WORLD_MULT : ACXSettings.RAISE_RATING_MULT);
                 ChatPacket.SendServerMessage(session, $"Not enough Luminance, you require {lumMult} Luminance per point of {target}.", ChatMessageType.Broadcast);
                 return;
             }
@@ -123,7 +123,7 @@ namespace ACE.Server.Command.Handlers
         {
             var player = session.Player;
             var timeLapse = DateTime.Now - new DateTime(player.LastRaisedRefundTimestamp);
-            var timeToUse = DuskfallSettings.RAISE_TIME_BETWEEN_REFUND - timeLapse;
+            var timeToUse = ACXSettings.RAISE_TIME_BETWEEN_REFUND - timeLapse;
 
             //Check if enough time has passed
             if (timeToUse.TotalSeconds > 0)
@@ -134,7 +134,7 @@ namespace ACE.Server.Command.Handlers
 
             //Refund player and set last use
             //TODO: Check if the player has anything to refund before setting a cooldown
-            DuskfallRaise.RaiseRefundToPlayer(player);
+            ACXRaise.RaiseRefundToPlayer(player);
             player.LastRaisedRefundTimestamp = DateTime.Now.Ticks;
         }
 

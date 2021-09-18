@@ -10,7 +10,7 @@ namespace ACE.Server.Network.GameAction.Actions
         [GameAction(GameActionType.LoginComplete)]
         public static void Handle(ClientMessage message, Session session)
         {
-            session.Player.HandleOnLoginBehavior();
+            session.Player.HandleOnPortalBehavior(); //Mod insert to allow doing something on login/portal load
             session.Player.OnTeleportComplete();
 
             if (!session.Player.FirstEnterWorldDone)

@@ -5,13 +5,13 @@ using ACE.Server.Network;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects;
 using ACE.Entity.Enum.Properties;
-using ACE.Server.DuskfallMods;
+using ACE.Server.ACX;
 using System.Collections.Generic;
 using ACE.Database;
 
 namespace ACE.Server.Command.Handlers
 {
-    public static class DuskfallAdminCommands
+    public static class ACXAdminCommands
     {
         [CommandHandler("raiserefundto", AccessLevel.Admin, CommandHandlerFlag.None, 1, "Refunds costs associated with /raise.", "/raiserefund [*|name]")]
         public static void HandleRaiseRefundTo(Session session, params string[] parameters)
@@ -20,8 +20,8 @@ namespace ACE.Server.Command.Handlers
             //Refund all players
             if (parameters[0] == "*")
             {
-                PlayerManager.GetAllOnline().ForEach(p => DuskfallRaise.RaiseRefundToPlayer(p));
-                PlayerManager.GetAllOffline().ForEach(p => DuskfallRaise.RaiseRefundToOfflinePlayer(p));
+                PlayerManager.GetAllOnline().ForEach(p => ACXRaise.RaiseRefundToPlayer(p));
+                PlayerManager.GetAllOffline().ForEach(p => ACXRaise.RaiseRefundToOfflinePlayer(p));
                 return;
             }
 
@@ -34,7 +34,7 @@ namespace ACE.Server.Command.Handlers
             }
             else if(isOnline)
             {
-                DuskfallRaise.RaiseRefundToPlayer(PlayerManager.GetOnlinePlayer(parameters[0]));
+                ACXRaise.RaiseRefundToPlayer(PlayerManager.GetOnlinePlayer(parameters[0]));
             }
             else
             {
@@ -43,22 +43,15 @@ namespace ACE.Server.Command.Handlers
             }
         }
 
-        // god
-        [CommandHandler("god", AccessLevel.Sentinel, CommandHandlerFlag.RequiresWorld, 0,
-            "Turns current character into a god!",
-            "Sets attributes and skills to higher than max levels.\n"
-            + "To return to a mortal state, use the /ungod command.\n"
-            + "Use the /god command with caution. While unlikely, there is a possibility that the character that runs the command will not be able to return to normal or will end up in a state that is unrecoverable.")]
-        public static void HandleGod(Session session, params string[] parameters)
+        public static void GodMode(Session session)
         {
-            // @god - Sets your own stats to a godly level.
-            // need to save stats so that we can return with /ungod
             DatabaseManager.Shard.SaveBiota(session.Player.Biota, session.Player.BiotaDatabaseLock, result => DoGodMode(result, session));
         }
 
         private static void DoGodMode(bool playerSaved, Session session, bool exceptionReturn = false)
         {
             var player = session.Player;
+            //player.Location.Indoors
 
             if (!playerSaved)
             {
@@ -209,15 +202,8 @@ namespace ACE.Server.Command.Handlers
             ChatPacket.SendServerMessage(session, "You are now a god!!!", ChatMessageType.Broadcast);
         }
 
-        // ungod
-        [CommandHandler("ungod", AccessLevel.Sentinel, CommandHandlerFlag.RequiresWorld, 0,
-            "Returns character to a mortal state.",
-            "Sets attributes and skills back to the values they were when you became a god.\n"
-            + "If the command fails to revert your state it will default to godmode.\n"
-            + "In the event of failure, contact a server administrator to sort it out.")]
-        public static void HandleUngod(Session session, params string[] parameters)
+        public static void UngodMode(Session session)
         {
-            // @ungod - Returns skills and attributues to pre-god levels.
             Player currentPlayer = session.Player;
             string returnString = session.Player.GodState;
 
@@ -325,7 +311,5 @@ namespace ACE.Server.Command.Handlers
                 ChatPacket.SendServerMessage(session, "You have returned from your godly state.", ChatMessageType.Broadcast);
             }
         }
-
-
     }
 }

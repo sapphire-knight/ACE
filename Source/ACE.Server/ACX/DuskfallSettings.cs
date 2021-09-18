@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ACE.Server.DuskfallMods
+namespace ACE.Server.ACX
 {
-    public static class DuskfallSettings
+    public static class ACXSettings
     {
         //TODO: Decide if these should be added to PropertyManager to allow modification with commands like /modifybool
         //RAISE_ATTR_MULT * L / (RAISE_ATTR_MULT_DECAY - RAISE_ATTR_LVL_DECAY * L), where L = current amount raised
@@ -17,5 +17,8 @@ namespace ACE.Server.DuskfallMods
         public const long RAISE_WORLD_MULT = 5000000;
         public const uint RAISE_MAX = 1000;
         public static readonly TimeSpan RAISE_TIME_BETWEEN_REFUND = TimeSpan.FromMinutes(60.0);
+
+        //Custom zones
+
     }
 }
