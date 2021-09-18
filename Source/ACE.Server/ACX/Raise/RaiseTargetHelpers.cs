@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ACE.Server.DuskfallMods
+namespace ACE.Server.ACX
 {
     static class RaiseTargetHelpers
     {
@@ -101,15 +101,15 @@ namespace ACE.Server.DuskfallMods
                 {
                     case RaiseTarget t when t.IsAttribute():
                         var avgLevel = (2 * startLevel + numLevels) / 2.0;  //Could use a decimal, but being off a very small amount should be fine
-                        long avgCost = (long)(DuskfallSettings.RAISE_ATTR_MULT * avgLevel / (DuskfallSettings.RAISE_ATTR_MULT_DECAY - DuskfallSettings.RAISE_ATTR_LVL_DECAY * avgLevel));
+                        long avgCost = (long)(ACXSettings.RAISE_ATTR_MULT * avgLevel / (ACXSettings.RAISE_ATTR_MULT_DECAY - ACXSettings.RAISE_ATTR_LVL_DECAY * avgLevel));
                         cost = checked(avgCost * numLevels);
                         return true;
                     case RaiseTarget.Offense:
                     case RaiseTarget.Defense:
-                        cost = checked(numLevels * DuskfallSettings.RAISE_RATING_MULT);
+                        cost = checked(numLevels * ACXSettings.RAISE_RATING_MULT);
                         return true;
                     case RaiseTarget.World:
-                        cost = checked(numLevels * DuskfallSettings.RAISE_WORLD_MULT);
+                        cost = checked(numLevels * ACXSettings.RAISE_WORLD_MULT);
                         return true;
                 }
             }

@@ -4,14 +4,14 @@ using ACE.Server.Network;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects;
 using ACE.Entity.Enum.Properties;
-using ACE.Server.DuskfallMods;
+using ACE.Server.ACX;
 using System.Collections.Generic;
 using ACE.Server.Entity;
 using ACE.Server.Managers;
 
-namespace ACE.Server.DuskfallMods
+namespace ACE.Server.ACX
 {
-    public static class DuskfallRaise
+    public static class ACXRaise
     {
         /// <summary>
         /// Refunds all resources used in the /raise command

@@ -10,7 +10,7 @@ using ACE.Server.WorldObjects;
 
 namespace ACE.Server.Entity
 {
-    //Currently just supports needed Properties for offline players, copied in from DuskfallPlayer_Properties.
+    //Currently just supports needed Properties for offline players, copied in from ACXPlayer_Properties.
     //TODO: Figure out a better way to implement this
     public partial class OfflinePlayer : IPlayer
     {
