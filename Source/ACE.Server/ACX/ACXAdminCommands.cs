@@ -13,6 +13,19 @@ namespace ACE.Server.Command.Handlers
 {
     public static class ACXAdminCommands
     {
+        [CommandHandler("spec-all", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, 0, "Specializes all skills.")]
+        public static void HandleSpecAll(Session session, params string[] parameters)
+        {
+            var player = session.Player;
+            foreach (var s in player.Skills)
+            {
+                player.TrainSkill(s.Key, 0);
+                player.SpecializeSkill(s.Key, 0);
+                var playerSkill = player.Skills[s.Key];
+                player.Session.Network.EnqueueSend(new GameMessagePrivateUpdateSkill(player, playerSkill));
+            }
+        }
+
         [CommandHandler("raiserefundto", AccessLevel.Admin, CommandHandlerFlag.None, 1, "Refunds costs associated with /raise.", "/raiserefund [*|name]")]
         public static void HandleRaiseRefundTo(Session session, params string[] parameters)
         {
@@ -27,12 +40,12 @@ namespace ACE.Server.Command.Handlers
 
             //Refund by name
             var player = PlayerManager.FindByName(parameters[0], out bool isOnline);
-            if(player == null)
+            if (player == null)
             {
                 ChatPacket.SendServerMessage(session, $"No player {parameters[0]} found.", ChatMessageType.Broadcast);
                 return;
             }
-            else if(isOnline)
+            else if (isOnline)
             {
                 ACXRaise.RaiseRefundToPlayer(PlayerManager.GetOnlinePlayer(parameters[0]));
             }

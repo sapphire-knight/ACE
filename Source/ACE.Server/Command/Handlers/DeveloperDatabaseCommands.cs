@@ -235,7 +235,7 @@ namespace ACE.Server.Command.Handlers
 
             using (var context = new ShardDbContext())
             {
-                var characterSpellBarsNotFixed = context.CharacterPropertiesSpellBar.Where(c => c.SpellBarNumber == 0).ToList();
+                var characterSpellBarsNotFixed = context.CharacterPropertiesSpellBar.AsQueryable().Where(c => c.SpellBarNumber == 0).ToList();
 
                 if (characterSpellBarsNotFixed.Count > 0)
                 {
@@ -244,7 +244,7 @@ namespace ACE.Server.Command.Handlers
                     return;
                 }
 
-                var characterSpellBars = context.CharacterPropertiesSpellBar.OrderBy(c => c.CharacterId).ThenBy(c => c.SpellBarNumber).ThenBy(c => c.SpellBarIndex).ToList();
+                var characterSpellBars = context.CharacterPropertiesSpellBar.AsQueryable().OrderBy(c => c.CharacterId).ThenBy(c => c.SpellBarNumber).ThenBy(c => c.SpellBarIndex).ToList();
 
                 uint characterId = 0;
                 uint spellBarNumber = 0;

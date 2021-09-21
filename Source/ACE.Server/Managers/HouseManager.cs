@@ -60,7 +60,7 @@ namespace ACE.Server.Managers
         {
             using (var ctx = new WorldDbContext())
             {
-                var query = from weenie in ctx.Weenie
+                var query = from weenie in ctx.Weenie.AsQueryable()
                             join inst in ctx.LandblockInstance on weenie.ClassId equals inst.WeenieClassId
                             where weenie.Type == (int)WeenieType.House
                             select new

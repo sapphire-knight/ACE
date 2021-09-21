@@ -2077,7 +2077,7 @@ namespace ACE.Server.Command.Handlers
         {
             using (var ctx = new WorldDbContext())
             {
-                var query = from weenie in ctx.Weenie
+                var query = from weenie in ctx.Weenie.AsQueryable()
                             join wpos in ctx.WeeniePropertiesPosition on weenie.ClassId equals wpos.ObjectId
                             where weenie.Type == (int)WeenieType.Portal && wpos.PositionType == (int)PositionType.Destination
                             select new
@@ -2109,7 +2109,7 @@ namespace ACE.Server.Command.Handlers
 
             using (var ctx = new WorldDbContext())
             {
-                var query = from weenie in ctx.Weenie
+                var query = from weenie in ctx.Weenie.AsQueryable()
                             join wstr in ctx.WeeniePropertiesString on weenie.ClassId equals wstr.ObjectId
                             join wpos in ctx.WeeniePropertiesPosition on weenie.ClassId equals wpos.ObjectId
                             where weenie.Type == (int)WeenieType.Portal && wstr.Type == (int)PropertyString.Name && wpos.PositionType == (int)PositionType.Destination
@@ -2150,7 +2150,7 @@ namespace ACE.Server.Command.Handlers
 
             using (var ctx = new WorldDbContext())
             {
-                var query = from weenie in ctx.Weenie
+                var query = from weenie in ctx.Weenie.AsQueryable()
                             join wstr in ctx.WeeniePropertiesString on weenie.ClassId equals wstr.ObjectId
                             join wpos in ctx.WeeniePropertiesPosition on weenie.ClassId equals wpos.ObjectId
                             where weenie.Type == (int)WeenieType.Portal && wpos.PositionType == (int)PositionType.Destination && wpos.ObjCellId >= blockStart && wpos.ObjCellId <= blockEnd
@@ -3290,7 +3290,7 @@ namespace ACE.Server.Command.Handlers
             }
             using (var ctx = new WorldDbContext())
             {
-                var query = from weenie in ctx.Weenie
+                var query = from weenie in ctx.Weenie.AsQueryable()
                             join deathTreasure in ctx.WeeniePropertiesDID on weenie.ClassId equals deathTreasure.ObjectId
                             join treasureDeath in ctx.TreasureDeath on deathTreasure.Value equals treasureDeath.TreasureType
                             where weenie.Type == (int)WeenieType.Creature && deathTreasure.Type == (ushort)PropertyDataId.DeathTreasureType && treasureDeath.Tier == tier

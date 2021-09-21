@@ -2653,7 +2653,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
             using (var ctx = new WorldDbContext())
             {
-                var weenies = ctx.Weenie.OrderBy(i => i.ClassId);
+                var weenies = ctx.Weenie.AsQueryable().OrderBy(i => i.ClassId);
 
                 lines.Add("namespace ACE.Server.Factories.Enum");
                 lines.Add("{");
