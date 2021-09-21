@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Discord.WebSocket;
@@ -20,8 +17,8 @@ namespace ACE.Server.ACX.Discord
         //Todo: Filtering relevant messages.  White/blacklisting.
 
         //Supply credentials
-        private const ulong RELAY_CHANNEL_ID = 877615436286546010;
-        private const string BOT_TOKEN = "ODg1OTYzNjgyNDExMDc3NjYz.YTur-g.bM8JBx83QaKJ6f5gs1CZ4NKL3Hk";
+        private const ulong RELAY_CHANNEL_ID = 000;
+        private const string BOT_TOKEN = "<your token>";
 
         private static DiscordSocketClient discord;
         private static IMessageChannel channel;
