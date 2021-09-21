@@ -353,9 +353,9 @@ namespace ACE.Server.Command.Handlers
                 // - ArantahKill1 (no 'turned in' stamp, only if given figurine?)
                 // - LumAugSkillQuest (stamped either 1 or 2 times)
 
-                oswaldSkillCredit = ctx.CharacterPropertiesQuestRegistry.Where(i => i.QuestName.Equals("ChasingOswaldDone")).Select(i => i.CharacterId).ToHashSet();
-                ralireaSkillCredit = ctx.CharacterPropertiesQuestRegistry.Where(i => i.QuestName.Equals("ArantahKill1")).Select(i => i.CharacterId).ToHashSet();
-                lumAugSkillCredits = ctx.CharacterPropertiesQuestRegistry.Where(i => i.QuestName.Equals("LumAugSkillQuest")).ToDictionary(i => i.CharacterId, i => i.NumTimesCompleted);
+                oswaldSkillCredit = ctx.CharacterPropertiesQuestRegistry.AsQueryable().Where(i => i.QuestName.Equals("ChasingOswaldDone")).Select(i => i.CharacterId).ToHashSet();
+                ralireaSkillCredit = ctx.CharacterPropertiesQuestRegistry.AsQueryable().Where(i => i.QuestName.Equals("ArantahKill1")).Select(i => i.CharacterId).ToHashSet();
+                lumAugSkillCredits = ctx.CharacterPropertiesQuestRegistry.AsQueryable().Where(i => i.QuestName.Equals("LumAugSkillQuest")).ToDictionary(i => i.CharacterId, i => i.NumTimesCompleted);
             }
 
             foreach (var player in players)
@@ -830,7 +830,7 @@ namespace ACE.Server.Command.Handlers
             using (var ctx = new ShardDbContext())
             {
                 // Asheron's Lesser Benediction augmentation operates differently than all other augs
-                lesserBenediction = ctx.CharacterPropertiesQuestRegistry.Where(i => i.QuestName.Equals("LesserBenedictionAug")).Select(i => i.CharacterId).ToHashSet();
+                lesserBenediction = ctx.CharacterPropertiesQuestRegistry.AsQueryable().Where(i => i.QuestName.Equals("LesserBenedictionAug")).Select(i => i.CharacterId).ToHashSet();
             }
 
             foreach (var player in players)
@@ -979,7 +979,7 @@ namespace ACE.Server.Command.Handlers
             {
                 CommandHandlerHelper.WriteOutputInfo(session, $"Finding biotas for these wcids");
 
-                var biotas = ctx.Biota.Where(i => weenieEmoteCache.ContainsKey(i.WeenieClassId)).ToList();
+                var biotas = ctx.Biota.AsQueryable().Where(i => weenieEmoteCache.ContainsKey(i.WeenieClassId)).ToList();
 
                 var distinct = biotas.Select(i => i.WeenieClassId).Distinct();
                 var counts = new Dictionary<uint, uint>();
@@ -1008,7 +1008,7 @@ namespace ACE.Server.Command.Handlers
                 {
                     bool updated = false;
 
-                    var query = from emote in ctx.BiotaPropertiesEmote
+                    var query = from emote in ctx.BiotaPropertiesEmote.AsQueryable()
                                 join action in ctx.BiotaPropertiesEmoteAction on emote.Id equals action.EmoteId
                                 where emote.ObjectId == biota.Id && action.Delay == 1.0f
                                 select new
@@ -1062,7 +1062,7 @@ namespace ACE.Server.Command.Handlers
 
             using (var ctx = new WorldDbContext())
             {
-                var query = from emote in ctx.WeeniePropertiesEmote
+                var query = from emote in ctx.WeeniePropertiesEmote.AsQueryable()
                             join action in ctx.WeeniePropertiesEmoteAction on emote.Id equals action.EmoteId
                             where action.Delay == 0.0f
                             select new
@@ -1156,7 +1156,7 @@ namespace ACE.Server.Command.Handlers
             {
                 ctx.Database.SetCommandTimeout(TimeSpan.FromMinutes(5));
 
-                var query = from armor in ctx.BiotaPropertiesInt
+                var query = from armor in ctx.BiotaPropertiesInt.AsQueryable()
                             join workmanship in ctx.BiotaPropertiesInt on armor.ObjectId equals workmanship.ObjectId
                             join name in ctx.BiotaPropertiesString on armor.ObjectId equals name.ObjectId
                             join validLocations in ctx.BiotaPropertiesInt on armor.ObjectId equals validLocations.ObjectId
@@ -1227,7 +1227,7 @@ namespace ACE.Server.Command.Handlers
         {
             using (var ctx = new ShardDbContext())
             {
-                var resistMagic = ctx.BiotaPropertiesInt.Where(i => i.Type == (int)PropertyInt.ResistMagic).ToDictionary(i => i.ObjectId, i => i.Value);
+                var resistMagic = ctx.BiotaPropertiesInt.AsQueryable().Where(i => i.Type == (int)PropertyInt.ResistMagic).ToDictionary(i => i.ObjectId, i => i.Value);
 
                 return resistMagic;
             }
@@ -1237,7 +1237,7 @@ namespace ACE.Server.Command.Handlers
         {
             using (var ctx = new ShardDbContext())
             {
-                var tinkerLogs = ctx.BiotaPropertiesString.Where(i => i.Type == (int)PropertyString.TinkerLog).ToDictionary(i => i.ObjectId, i => i.Value);
+                var tinkerLogs = ctx.BiotaPropertiesString.AsQueryable().Where(i => i.Type == (int)PropertyString.TinkerLog).ToDictionary(i => i.ObjectId, i => i.Value);
 
                 return tinkerLogs;
             }
@@ -1247,7 +1247,7 @@ namespace ACE.Server.Command.Handlers
         {
             using (var ctx = new ShardDbContext())
             {
-                var numTimesTinkered = ctx.BiotaPropertiesInt.Where(i => i.Type == (int)PropertyInt.NumTimesTinkered).ToDictionary(i => i.ObjectId, i => i.Value);
+                var numTimesTinkered = ctx.BiotaPropertiesInt.AsQueryable().Where(i => i.Type == (int)PropertyInt.NumTimesTinkered).ToDictionary(i => i.ObjectId, i => i.Value);
 
                 return numTimesTinkered;
             }
@@ -1257,7 +1257,7 @@ namespace ACE.Server.Command.Handlers
         {
             using (var ctx = new ShardDbContext())
             {
-                var imbuedEffect = ctx.BiotaPropertiesInt.Where(i => i.Type == (int)PropertyInt.ImbuedEffect).ToDictionary(i => i.ObjectId, i => i.Value);
+                var imbuedEffect = ctx.BiotaPropertiesInt.AsQueryable().Where(i => i.Type == (int)PropertyInt.ImbuedEffect).ToDictionary(i => i.ObjectId, i => i.Value);
 
                 return imbuedEffect;
             }
@@ -1310,10 +1310,10 @@ namespace ACE.Server.Command.Handlers
                 ctx.Database.SetCommandTimeout(TimeSpan.FromMinutes(5));
 
                 // get all shard clothing
-                var _clothing = ctx.Biota.Where(i => i.WeenieType == (int)WeenieType.Clothing).ToList();
+                var _clothing = ctx.Biota.AsQueryable().Where(i => i.WeenieType == (int)WeenieType.Clothing).ToList();
 
                 // get all shard armor levels
-                var armorLevels = ctx.BiotaPropertiesInt.Where(i => i.Type == (ushort)PropertyInt.ArmorLevel).ToDictionary(i => i.ObjectId, i => i.Value);
+                var armorLevels = ctx.BiotaPropertiesInt.AsQueryable().Where(i => i.Type == (ushort)PropertyInt.ArmorLevel).ToDictionary(i => i.ObjectId, i => i.Value);
 
                 // filter clothing to actual clothing
                 var clothing = new Dictionary<uint, Database.Models.Shard.Biota>();
@@ -1327,7 +1327,7 @@ namespace ACE.Server.Command.Handlers
                 }
 
                 // get shard spells
-                var _spells = ctx.BiotaPropertiesSpellBook.Where(i => clothing.ContainsKey(i.ObjectId)).ToList();
+                var _spells = ctx.BiotaPropertiesSpellBook.AsQueryable().Where(i => clothing.ContainsKey(i.ObjectId)).ToList();
 
                 // filter clothing to those with epics/legendaries
                 var highTierClothing = new Dictionary<uint, int>();
@@ -1351,7 +1351,7 @@ namespace ACE.Server.Command.Handlers
                 }
 
                 // get wield level for these items
-                var wieldLevels = ctx.BiotaPropertiesInt.Where(i => i.Type == (ushort)PropertyInt.WieldDifficulty && highTierClothing.ContainsKey(i.ObjectId)).Select(i => i.ObjectId).ToHashSet();
+                var wieldLevels = ctx.BiotaPropertiesInt.AsQueryable().Where(i => i.Type == (ushort)PropertyInt.WieldDifficulty && highTierClothing.ContainsKey(i.ObjectId)).Select(i => i.ObjectId).ToHashSet();
 
                 foreach (var kvp in highTierClothing)
                 {
@@ -1408,7 +1408,7 @@ namespace ACE.Server.Command.Handlers
                 ctx.Database.SetCommandTimeout(TimeSpan.FromMinutes(5));
 
                 // get all biota spellbooks
-                var spellbook = ctx.BiotaPropertiesSpellBook.Where(i => i.Probability == 2.0f).ToList();
+                var spellbook = ctx.BiotaPropertiesSpellBook.AsQueryable().Where(i => i.Probability == 2.0f).ToList();
 
                 var legendaryItems = new HashSet<uint>();
 
@@ -1419,7 +1419,7 @@ namespace ACE.Server.Command.Handlers
                 }
 
                 // get wield requirements for these items
-                var query = from wieldReq in ctx.BiotaPropertiesInt
+                var query = from wieldReq in ctx.BiotaPropertiesInt.AsQueryable()
                             join wieldDiff in ctx.BiotaPropertiesInt on wieldReq.ObjectId equals wieldDiff.ObjectId
                             where wieldReq.Type.Equals((int)PropertyInt.WieldRequirements) && wieldReq.Value.Equals((int)WieldRequirement.Level) && wieldDiff.Type.Equals((int)PropertyInt.WieldDifficulty) && legendaryItems.Contains(wieldReq.ObjectId)
                             select new
@@ -1430,8 +1430,8 @@ namespace ACE.Server.Command.Handlers
 
                 var wieldReq1 = query.ToList();
 
-                query = from wieldReq in ctx.BiotaPropertiesInt
-                            join wieldDiff in ctx.BiotaPropertiesInt on wieldReq.ObjectId equals wieldDiff.ObjectId
+                query = from wieldReq in ctx.BiotaPropertiesInt.AsQueryable()
+                        join wieldDiff in ctx.BiotaPropertiesInt on wieldReq.ObjectId equals wieldDiff.ObjectId
                             where wieldReq.Type.Equals((int)PropertyInt.WieldRequirements2) && wieldReq.Value.Equals((int)WieldRequirement.Level) && wieldDiff.Type.Equals((int)PropertyInt.WieldDifficulty2) && legendaryItems.Contains(wieldReq.ObjectId)
                             select new
                             {
@@ -1533,13 +1533,13 @@ namespace ACE.Server.Command.Handlers
                 ctx.Database.SetCommandTimeout(TimeSpan.FromMinutes(5));
 
                 // get items with GearCritDamage
-                var critDamage = ctx.BiotaPropertiesInt.Where(i => i.Type == (ushort)PropertyInt.GearCritDamage).ToDictionary(i => i.ObjectId, i => i.Value);
+                var critDamage = ctx.BiotaPropertiesInt.AsQueryable().Where(i => i.Type == (ushort)PropertyInt.GearCritDamage).ToDictionary(i => i.ObjectId, i => i.Value);
 
                 // get items with GearCritDamageResist
-                var critDamageResist = ctx.BiotaPropertiesInt.Where(i => i.Type == (ushort)PropertyInt.GearCritDamageResist).ToDictionary(i => i.ObjectId, i => i.Value);
+                var critDamageResist = ctx.BiotaPropertiesInt.AsQueryable().Where(i => i.Type == (ushort)PropertyInt.GearCritDamageResist).ToDictionary(i => i.ObjectId, i => i.Value);
 
                 // get lootgen shields
-                var query = from biota in ctx.Biota
+                var query = from biota in ctx.Biota.AsQueryable()
                             join workmanship in ctx.BiotaPropertiesInt on biota.Id equals workmanship.ObjectId
                             join combatUse in ctx.BiotaPropertiesInt on biota.Id equals combatUse.ObjectId
                             join name in ctx.BiotaPropertiesString on biota.Id equals name.ObjectId

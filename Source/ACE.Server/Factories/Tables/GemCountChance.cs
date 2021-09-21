@@ -18,7 +18,7 @@ namespace ACE.Server.Factories.Tables
         {
             using (var ctx = new WorldDbContext())
             {
-                var gemCounts = ctx.TreasureGemCount.Where(i => i.Chance > 0);
+                var gemCounts = ctx.TreasureGemCount.AsQueryable().Where(i => i.Chance > 0);
 
                 foreach (var gemCount in gemCounts)
                 {
