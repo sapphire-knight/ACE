@@ -268,8 +268,9 @@ namespace ACE.Server
             log.Info("Initializing EventManager...");
             EventManager.Initialize();
 
-            log.Info("Initializing DiscordRelay...");
+            log.Info("Initializing Discord Relay...");
             ACX.Discord.DiscordRelay.Initialize();
+
 
             // Free up memory before the server goes online. This can free up 6 GB+ on larger servers.
             log.Info("Forcing .net garbage collection...");
